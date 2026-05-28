@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "deny": [
+      "Bash(rm *)",
+      "Bash(rm -rf *)",
+      "Bash(git push *)",
+      "Bash(git push --force*)",
+      "Bash(git reset --hard*)",
+      "Bash(git clean *)",
+      "Bash(chmod 777 *)",
+      "Bash(chown *)",
+      "Bash(sudo *)",
+      "Bash(curl * | sh*)",
+      "Bash(wget * | sh*)",
+      "Bash(* > .env*)",
+      "Bash(* >> .env*)"
+    ]
+  }
+}
