@@ -191,7 +191,7 @@ ensure_templates() {
   info "未在脚本目录发现 templates/，尝试下载模板包..."
 
   command -v curl >/dev/null 2>&1 || error "缺少 curl，无法自动下载模板。请 clone 完整仓库后再运行。"
-  command -v unzip >/dev/null 2>&1 || error "缺少 unzip，无法解压模板包。请安装 unzip 或 clone 完整仓库后再运行。"
+  command -v python3 >/dev/null 2>&1 || error "缺少 python3，无法解压模板包。请 clone 完整仓库后再运行。"
 
   TEMP_TEMPLATE_DIR="${TMPDIR:-/tmp}/ai-workflow-template.$$"
   local archive="$TEMP_TEMPLATE_DIR/template.zip"
@@ -202,7 +202,7 @@ ensure_templates() {
 
   info "下载: $TEMPLATE_ARCHIVE_URL"
   curl -fsSL "$TEMPLATE_ARCHIVE_URL" -o "$archive" || error "模板包下载失败。可设置 AI_WORKFLOW_TEMPLATE_REPO / AI_WORKFLOW_TEMPLATE_REF / AI_WORKFLOW_TEMPLATE_ARCHIVE_URL 后重试。"
-  unzip -q "$archive" -d "$TEMP_TEMPLATE_DIR" || error "模板包解压失败"
+  python3 -c "import zipfile; zipfile.ZipFile('$archive').extractall('$TEMP_TEMPLATE_DIR')" || error "模板包解压失败"
 
   extracted="$(find "$TEMP_TEMPLATE_DIR" -maxdepth 2 -type d -name templates -print -quit | sed 's#/templates$##')"
   [[ -n "$extracted" && -f "$extracted/templates/universal/AGENTS.md" ]] || error "模板包中未找到 templates/universal/AGENTS.md"
