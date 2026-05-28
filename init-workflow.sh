@@ -623,16 +623,12 @@ main() {
 
   ensure_templates
 
-  generate_universal
-
   case "$TOOL" in
     claude-code) generate_claude_code ;;
-    codex)       generate_codex ;;
-    opencode)    generate_opencode ;;
-    all)         generate_claude_code; generate_codex; generate_opencode ;;
+    codex)       generate_universal; generate_codex; safe_append_mode_protocol "$TARGET_DIR/AGENTS.md" "AGENTS.md" ;;
+    opencode)    generate_universal; generate_opencode; safe_append_mode_protocol "$TARGET_DIR/AGENTS.md" "AGENTS.md" ;;
+    all)         generate_universal; generate_claude_code; generate_codex; generate_opencode; safe_append_mode_protocol "$TARGET_DIR/AGENTS.md" "AGENTS.md" ;;
   esac
-
-  safe_append_mode_protocol "$TARGET_DIR/AGENTS.md" "AGENTS.md"
 
   generate_gitignore
 

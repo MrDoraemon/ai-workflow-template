@@ -535,20 +535,26 @@ if ($DryRun) { Write-Info "DRY-RUN 模式：仅预览，不写入文件" }
 try {
   Ensure-Templates
 
-  Generate-Universal
-
   switch ($Tool) {
     "claude-code" { Generate-ClaudeCode }
-    "codex" { Generate-Codex }
-    "opencode" { Generate-OpenCode }
+    "codex" {
+      Generate-Universal
+      Generate-Codex
+      Append-ModeProtocol (Join-Path $TargetDir "AGENTS.md") "AGENTS.md"
+    }
+    "opencode" {
+      Generate-Universal
+      Generate-OpenCode
+      Append-ModeProtocol (Join-Path $TargetDir "AGENTS.md") "AGENTS.md"
+    }
     "all" {
+      Generate-Universal
       Generate-ClaudeCode
       Generate-Codex
       Generate-OpenCode
+      Append-ModeProtocol (Join-Path $TargetDir "AGENTS.md") "AGENTS.md"
     }
   }
-
-  Append-ModeProtocol (Join-Path $TargetDir "AGENTS.md") "AGENTS.md"
   Generate-Gitignore
 
   Write-Host ""
