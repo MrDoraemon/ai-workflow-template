@@ -12,7 +12,7 @@ $ErrorActionPreference = "Stop"
 
 $ScriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $TargetDir = (Get-Location).Path
-$TemplateRepoUrl = if ($env:AI_WORKFLOW_TEMPLATE_REPO) { $env:AI_WORKFLOW_TEMPLATE_REPO } else { "https://github.com/your-org/ai-workflow-template" }
+$TemplateRepoUrl = if ($env:AI_WORKFLOW_TEMPLATE_REPO) { $env:AI_WORKFLOW_TEMPLATE_REPO } else { "https://github.com/MrDoraemon/ai-workflow-template" }
 $TemplateRef = if ($env:AI_WORKFLOW_TEMPLATE_REF) { $env:AI_WORKFLOW_TEMPLATE_REF } else { "main" }
 $TemplateArchiveUrl = if ($env:AI_WORKFLOW_TEMPLATE_ARCHIVE_URL) { $env:AI_WORKFLOW_TEMPLATE_ARCHIVE_URL } else { "$TemplateRepoUrl/archive/refs/heads/$TemplateRef.zip" }
 $TempTemplateDir = ""
@@ -84,7 +84,7 @@ function Ensure-Templates {
   }
 
   Write-Info "未在脚本目录发现 templates/，尝试下载模板包..."
-  if ((-not $env:AI_WORKFLOW_TEMPLATE_ARCHIVE_URL) -and ($TemplateRepoUrl -like "*github.com/your-org/ai-workflow-template*")) {
+  if ((-not $env:AI_WORKFLOW_TEMPLATE_ARCHIVE_URL) -and ($TemplateRepoUrl -like "*github.com/MrDoraemon/ai-workflow-template*")) {
     Stop-Init "当前脚本未包含 templates/，且默认仓库地址仍是示例值。请设置 AI_WORKFLOW_TEMPLATE_REPO 或 AI_WORKFLOW_TEMPLATE_ARCHIVE_URL，或 clone 完整模板仓库后运行。"
   }
 

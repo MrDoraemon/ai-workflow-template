@@ -11,7 +11,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 TARGET_DIR="$(pwd)"
-TEMPLATE_REPO_URL="${AI_WORKFLOW_TEMPLATE_REPO:-https://github.com/your-org/ai-workflow-template}"
+TEMPLATE_REPO_URL="${AI_WORKFLOW_TEMPLATE_REPO:-https://github.com/MrDoraemon/ai-workflow-template}"
 TEMPLATE_REF="${AI_WORKFLOW_TEMPLATE_REF:-main}"
 TEMPLATE_ARCHIVE_URL="${AI_WORKFLOW_TEMPLATE_ARCHIVE_URL:-${TEMPLATE_REPO_URL}/archive/refs/heads/${TEMPLATE_REF}.zip}"
 TEMP_TEMPLATE_DIR=""
@@ -190,7 +190,7 @@ ensure_templates() {
 
   info "未在脚本目录发现 templates/，尝试下载模板包..."
 
-  if [[ -z "${AI_WORKFLOW_TEMPLATE_ARCHIVE_URL:-}" && "$TEMPLATE_REPO_URL" == *"github.com/your-org/ai-workflow-template"* ]]; then
+  if [[ -z "${AI_WORKFLOW_TEMPLATE_ARCHIVE_URL:-}" && "$TEMPLATE_REPO_URL" == *"github.com/MrDoraemon/ai-workflow-template"* ]]; then
     error "当前脚本未包含 templates/，且默认仓库地址仍是示例值。请设置 AI_WORKFLOW_TEMPLATE_REPO 或 AI_WORKFLOW_TEMPLATE_ARCHIVE_URL，或 clone 完整模板仓库后运行。"
   fi
 
