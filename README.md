@@ -20,13 +20,13 @@
 
 ```bash
 # 方式一：clone 后引用（推荐）
-git clone https://github.com/your-org/ai-workflow-template.git /tmp/ai-workflow-template
+git clone https://github.com/MrDoraemon/ai-workflow-template.git /tmp/ai-workflow-template
 cd /path/to/your-project
 /tmp/ai-workflow-template/init-workflow.sh
 
 # 方式二：直接下载脚本（脚本会自动下载 templates 模板包）
 cd /path/to/your-project
-curl -fsSL https://raw.githubusercontent.com/your-org/ai-workflow-template/main/init-workflow.sh -o /tmp/init-workflow.sh
+curl -fsSL https://raw.githubusercontent.com/MrDoraemon/ai-workflow-template/main/init-workflow.sh -o /tmp/init-workflow.sh
 bash /tmp/init-workflow.sh
 ```
 
@@ -34,29 +34,27 @@ bash /tmp/init-workflow.sh
 
 ```powershell
 # 方式一：clone 后引用（推荐）
-git clone https://github.com/your-org/ai-workflow-template.git $env:TEMP\ai-workflow-template
+git clone https://github.com/MrDoraemon/ai-workflow-template.git $env:TEMP\ai-workflow-template
 cd C:\path\to\your-project
 powershell -ExecutionPolicy Bypass -File $env:TEMP\ai-workflow-template\init-workflow.ps1
 
 # 方式二：直接下载脚本（脚本会自动下载 templates 模板包）
 cd C:\path\to\your-project
-iwr https://raw.githubusercontent.com/your-org/ai-workflow-template/main/init-workflow.ps1 -OutFile $env:TEMP\init-workflow.ps1
+iwr https://raw.githubusercontent.com/MrDoraemon/ai-workflow-template/main/init-workflow.ps1 -OutFile $env:TEMP\init-workflow.ps1
 powershell -ExecutionPolicy Bypass -File $env:TEMP\init-workflow.ps1
 ```
 
 脚本会将模板文件复制到**当前目录**，不会修改模板源仓库。直接下载单脚本时，脚本会从 GitHub archive 自动下载 `templates/`。如使用 fork、私有仓库或指定分支，可设置：
 
 ```bash
-export AI_WORKFLOW_TEMPLATE_REPO=https://github.com/your-org/ai-workflow-template
+export AI_WORKFLOW_TEMPLATE_REPO=https://github.com/MrDoraemon/ai-workflow-template
 export AI_WORKFLOW_TEMPLATE_REF=main
 ```
 
 ```powershell
-$env:AI_WORKFLOW_TEMPLATE_REPO = "https://github.com/your-org/ai-workflow-template"
+$env:AI_WORKFLOW_TEMPLATE_REPO = "https://github.com/MrDoraemon/ai-workflow-template"
 $env:AI_WORKFLOW_TEMPLATE_REF = "main"
 ```
-
-发布本模板前，请将文档和脚本中的 `https://github.com/your-org/ai-workflow-template` 替换为真实仓库地址。若使用自定义归档地址，可直接设置 `AI_WORKFLOW_TEMPLATE_ARCHIVE_URL` 指向可下载的 zip 包。
 
 交互式向导会引导你选择：
 1. AI 编码工具（Claude Code / Codex CLI / OpenCode / 全部）
