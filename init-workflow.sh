@@ -190,10 +190,6 @@ ensure_templates() {
 
   info "未在脚本目录发现 templates/，尝试下载模板包..."
 
-  if [[ -z "${AI_WORKFLOW_TEMPLATE_ARCHIVE_URL:-}" && "$TEMPLATE_REPO_URL" == *"github.com/MrDoraemon/ai-workflow-template"* ]]; then
-    error "当前脚本未包含 templates/，且默认仓库地址仍是示例值。请设置 AI_WORKFLOW_TEMPLATE_REPO 或 AI_WORKFLOW_TEMPLATE_ARCHIVE_URL，或 clone 完整模板仓库后运行。"
-  fi
-
   command -v curl >/dev/null 2>&1 || error "缺少 curl，无法自动下载模板。请 clone 完整仓库后再运行。"
   command -v unzip >/dev/null 2>&1 || error "缺少 unzip，无法解压模板包。请安装 unzip 或 clone 完整仓库后再运行。"
 
