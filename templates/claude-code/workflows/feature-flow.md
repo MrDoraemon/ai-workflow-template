@@ -22,11 +22,19 @@
 5. **人工门控点**：展示 REQ 文档，等待用户确认
 
 ### Phase 2: 架构设计（顺序执行，依赖 Phase 1）
-1. 将用户确认的 REQ 文档传递给 architect Agent
-2. 输出 ARCH-{YYYYMMDD}-{NNN} 文档（含模块任务划分）
-3. **设计自检**：architect Agent 必须输出设计自检报告（DG-01~DG-09），100% PASS 才能继续
-4. **存档**：将 ARCH 文档写入 `.claude/artifacts/architectures/ARCH-{YYYYMMDD}-{NNN}.md`，更新 `index.md`
-5. **人工门控点**：展示 ARCH 文档，等待用户确认
+1. 将用户确认的 REQ 文档传递给 architect Agent（调度指令：TDR 阶段）
+2. architect 输出 TDR-{YYYYMMDD}-{NNN} 文档（技术决策评审）
+   - 识别关键技术决策点，每个提供多选项（含优势/劣势）和推荐
+   - 如无需要用户参与的决策点，在"无需用户决策的技术选型"章节说明
+   - **lite 模式**：architect 可输出"TDR: 跳过（lite 模式）"并直接进入步骤 4
+3. **方案选择门控点**：展示 TDR 文档，等待用户逐项选择
+   - 用户可接受推荐或选择其他选项，可补充额外约束
+   - 用户确认后，主会话创建 `.claude/artifacts/architectures/TDR-{YYYYMMDD}-{NNN}.confirmed` 标记文件
+4. 将用户选择结果 + REQ 文档传递给 architect Agent（调度指令：ARCH 阶段）
+   - architect 根据用户选择生成 ARCH-{YYYYMMDD}-{NNN} 文档（含模块任务划分）
+5. **设计自检**：architect Agent 必须输出设计自检报告（DG-01~DG-09），100% PASS 才能继续
+6. **存档**：将 TDR 和 ARCH 文档写入 `.claude/artifacts/architectures/`，更新 `index.md`
+7. **人工门控点**：展示 ARCH 文档，等待用户确认
 
 ### Phase 3: 编码实现（可按模块并行执行）
 - 调用 developer Agent（通用实现 + 测试）

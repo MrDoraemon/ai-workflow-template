@@ -15,5 +15,18 @@
       "Bash(* > .env*)",
       "Bash(* >> .env*)"
     ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/tdr-gate.sh"
+          }
+        ]
+      }
+    ]
   }
 }

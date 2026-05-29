@@ -53,7 +53,7 @@
 
 ### 流水线触发规则
 
-- **新功能需求** → analyst → architect(+设计自检 DG) → developer(+上下文预检 CG，可按模块并行调度) → architect(+编码合规预检 PLG) → 交付预检(CTG) → qa → reviewer
+- **新功能需求** → analyst → architect(+TDR 方案选择+设计自检 DG) → developer(+上下文预检 CG，可按模块并行调度) → architect(+编码合规预检 PLG) → 交付预检(CTG) → qa → reviewer
 - **Bug 修复** → 定位问题 → developer → qa → reviewer
 - **代码评审** → reviewer（可选 + security）
 - **部署** → qa → security → devops

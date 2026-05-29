@@ -252,17 +252,20 @@ safe_append_mode_protocol() {
         printf '%s\n' '- developer 必须完成必要上下文确认、实现、自测和验证命令。'
         printf '%s\n' '- reviewer、qa、security 按风险触发，不强制每次调用。'
         printf '%s\n' '- CTG 只检查本次变更相关的运行、构建、测试、依赖和配置项。'
+        printf '%s\n' '- TDR（技术决策评审）可选跳过；architect 可直接进入 ARCH 设计，但需在文档中注明跳过原因。'
         ;;
       standard)
         printf '%s\n' '- 默认执行完整常规流水线：analyst → architect → developer → PLG → CTG → qa → reviewer。'
         printf '%s\n' '- DG、CG、PLG、CTG 按模板定义执行；阻断项必须修复。'
         printf '%s\n' '- security 在安全敏感、认证授权、依赖、配置、数据处理相关变更时触发。'
+        printf '%s\n' '- architect 必须在 ARCH 文档前输出 TDR（技术决策评审），用户确认选择后再进入详细设计。'
         ;;
       strict)
         printf '%s\n' '- analyst、architect、developer、qa、reviewer 必须参与；security 默认强制参与。'
         printf '%s\n' '- REQ、ARCH、测试报告、评审报告和安全报告必须存档并更新索引。'
         printf '%s\n' '- DG、CG、PLG、CTG 必须 100% 执行；任何阻断项不得带病推进。'
         printf '%s\n' '- 需求确认、架构确认、交付终审和发布/部署前确认均作为人工门控点。'
+        printf '%s\n' '- TDR（技术决策评审）为强制步骤且必须存档；用户必须明确确认每个决策项。'
         ;;
     esac
     printf '<!-- AI-WORKFLOW-MODE:end -->\n'
@@ -477,6 +480,12 @@ generate_claude_code() {
 
   safe_cp "$SCRIPT_DIR/templates/claude-code/settings.local.json" "$TARGET_DIR/.claude/settings.local.json"
   ok "settings.local.json 已复制"
+
+  # TDR gate hook
+  $DRY_RUN || mkdir -p "$TARGET_DIR/.claude/hooks"
+  safe_cp "$SCRIPT_DIR/templates/claude-code/hooks/tdr-gate.sh" "$TARGET_DIR/.claude/hooks/tdr-gate.sh"
+  $DRY_RUN || chmod +x "$TARGET_DIR/.claude/hooks/tdr-gate.sh"
+  ok "TDR gate hook 已安装"
 
   # .claude/CLAUDE.md（零侵入：不修改根目录 CLAUDE.md）
   if [[ -f "$SCRIPT_DIR/templates/claude-code/claude-md-protocol.md" ]]; then
