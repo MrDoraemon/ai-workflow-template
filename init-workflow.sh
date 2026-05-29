@@ -23,6 +23,7 @@ NON_INTERACTIVE=false
 DRY_RUN=false
 SELECTED_AGENTS=()
 SELECTED_WORKFLOWS=()
+AGENTS_MD_CREATED=false
 
 # ─── Agent 注册表（平行索引数组，兼容 bash 3.2）───
 AGENT_NAMES=(analyst architect developer qa reviewer security devops)
@@ -184,7 +185,8 @@ cleanup_temp_templates() {
 }
 
 ensure_templates() {
-  if [[ -f "$SCRIPT_DIR/templates/universal/AGENTS.md" ]]; then
+  if [[ -f "$SCRIPT_DIR/templates/universal/AGENTS.md" ]] && \
+     [[ -d "$SCRIPT_DIR/templates/universal/ai-workflow" ]]; then
     return
   fi
 
@@ -205,7 +207,7 @@ ensure_templates() {
   python3 -c "import zipfile; zipfile.ZipFile('$archive').extractall('$TEMP_TEMPLATE_DIR')" || error "模板包解压失败"
 
   extracted="$(find "$TEMP_TEMPLATE_DIR" -maxdepth 2 -type d -name templates -print -quit | sed 's#/templates$##')"
-  [[ -n "$extracted" && -f "$extracted/templates/universal/AGENTS.md" ]] || error "模板包中未找到 templates/universal/AGENTS.md"
+  [[ -n "$extracted" && -f "$extracted/templates/universal/AGENTS.md" && -d "$extracted/templates/universal/ai-workflow" ]] || error "模板包中未找到 templates/universal/ai-workflow"
 
   SCRIPT_DIR="$extracted"
   ok "模板包已就绪: $SCRIPT_DIR"
@@ -375,13 +377,58 @@ step5_confirm() {
 # ─── 生成逻辑 ───
 
 generate_universal() {
-  info "生成通用层 AGENTS.md..."
-  if [[ -f "$TARGET_DIR/AGENTS.md" ]]; then
-    warn "AGENTS.md 已存在，跳过（如需更新请手动处理）"
-    return
+  info "生成通用层 .ai-workflow/..."
+
+  local ai_wf="$TARGET_DIR/.ai-workflow"
+  local src_dir="$SCRIPT_DIR/templates/universal/ai-workflow"
+
+  safe_mkdir "$ai_wf" "$ai_wf/agents" "$ai_wf/workflows"
+
+  # protocol.md
+  if [[ -f "$src_dir/protocol.md" ]]; then
+    if [[ -f "$ai_wf/protocol.md" ]]; then
+      ok ".ai-workflow/protocol.md 已存在，跳过"
+    else
+      safe_cp "$src_dir/protocol.md" "$ai_wf/protocol.md"
+      ok ".ai-workflow/protocol.md"
+    fi
   fi
-  safe_cp "$SCRIPT_DIR/templates/universal/AGENTS.md" "$TARGET_DIR/AGENTS.md"
-  ok "AGENTS.md 已生成"
+
+  # agents
+  for agent in "${SELECTED_AGENTS[@]}"; do
+    local src="$src_dir/agents/${agent}-section.md"
+    if [[ -f "$src" ]] && [[ ! -f "$ai_wf/agents/${agent}-section.md" ]]; then
+      safe_cp "$src" "$ai_wf/agents/${agent}-section.md"
+      ok ".ai-workflow/agents/${agent}-section.md"
+    fi
+  done
+
+  # workflows
+  for workflow in "${SELECTED_WORKFLOWS[@]}"; do
+    local src="$src_dir/workflows/${workflow}.md"
+    if [[ -f "$src" ]] && [[ ! -f "$ai_wf/workflows/${workflow}.md" ]]; then
+      safe_cp "$src" "$ai_wf/workflows/${workflow}.md"
+      ok ".ai-workflow/workflows/${workflow}.md"
+    fi
+  done
+
+  # uninstall.sh
+  if [[ -f "$src_dir/uninstall.sh" ]]; then
+    safe_cp "$src_dir/uninstall.sh" "$ai_wf/uninstall.sh"
+    $DRY_RUN || chmod +x "$ai_wf/uninstall.sh"
+    ok ".ai-workflow/uninstall.sh"
+  fi
+
+  # AGENTS.md (Codex): only create if not already exists
+  if [[ ! -f "$TARGET_DIR/AGENTS.md" ]]; then
+    safe_cp "$SCRIPT_DIR/templates/universal/AGENTS.md" "$TARGET_DIR/AGENTS.md"
+    AGENTS_MD_CREATED=true
+    ok "AGENTS.md 已生成（从通用模板）"
+  else
+    warn "AGENTS.md 已存在，不修改。通用协议见 .ai-workflow/protocol.md"
+  fi
+
+  ok ".ai-workflow/ 通用层已生成"
 }
 
 generate_claude_code() {
@@ -431,36 +478,34 @@ generate_claude_code() {
   safe_cp "$SCRIPT_DIR/templates/claude-code/settings.local.json" "$TARGET_DIR/.claude/settings.local.json"
   ok "settings.local.json 已复制"
 
-  # CLAUDE.md 追加（幂等）
+  # .claude/CLAUDE.md（零侵入：不修改根目录 CLAUDE.md）
   if [[ -f "$SCRIPT_DIR/templates/claude-code/claude-md-protocol.md" ]]; then
-    local marker="Multi-Agent 协作协议"
-    if [[ -f "$TARGET_DIR/CLAUDE.md" ]] && grep -q "$marker" "$TARGET_DIR/CLAUDE.md" 2>/dev/null; then
-      ok "CLAUDE.md 已包含多 Agent 协作协议，跳过"
-    elif [[ -f "$TARGET_DIR/CLAUDE.md" ]]; then
-      $DRY_RUN || echo "" >> "$TARGET_DIR/CLAUDE.md"
-      safe_append "$SCRIPT_DIR/templates/claude-code/claude-md-protocol.md" "$TARGET_DIR/CLAUDE.md"
-      ok "CLAUDE.md 已追加多 Agent 协作协议"
+    local claude_target="$TARGET_DIR/.claude/CLAUDE.md"
+    if [[ -f "$claude_target" ]]; then
+      ok ".claude/CLAUDE.md 已存在，跳过"
     else
-      safe_cp "$SCRIPT_DIR/templates/claude-code/claude-md-protocol.md" "$TARGET_DIR/CLAUDE.md"
-      ok "CLAUDE.md 已创建（含多 Agent 协作协议）"
+      safe_cp "$SCRIPT_DIR/templates/claude-code/claude-md-protocol.md" "$claude_target"
+      ok ".claude/CLAUDE.md 已创建（含多 Agent 协作协议）"
     fi
   fi
 
-  safe_append_mode_protocol "$TARGET_DIR/CLAUDE.md" "CLAUDE.md"
+  safe_append_mode_protocol "$TARGET_DIR/.claude/CLAUDE.md" ".claude/CLAUDE.md"
 }
 
 generate_codex() {
   info "生成 Codex CLI 适配层..."
 
+  local target="$TARGET_DIR/AGENTS.md"
+
+  # Zero-intrusion: only modify AGENTS.md if we created it in this run
+  if ! $AGENTS_MD_CREATED; then
+    warn "AGENTS.md 为已有文件，跳过 Codex 角色追加（通用协议见 .ai-workflow/protocol.md）"
+    return
+  fi
+
   for agent in "${SELECTED_AGENTS[@]}"; do
     local src="$SCRIPT_DIR/templates/codex/agents-md-sections/${agent}-section.md"
-    local target="$TARGET_DIR/AGENTS.md"
-    local marker="## ${agent}（"
     if [[ -f "$src" ]]; then
-      if [[ -f "$target" ]] && grep -qF "$marker" "$target" 2>/dev/null; then
-        ok "Codex 角色已存在: ${agent}，跳过"
-        continue
-      fi
       safe_append "$src" "$target"
       $DRY_RUN || echo "" >> "$target"
       ok "Codex 角色: ${agent}"
@@ -507,7 +552,20 @@ JSON
 
 generate_gitignore() {
   local gitignore="$TARGET_DIR/.gitignore"
-  local entries=(".env" ".env.*" "!.env.example" ".claude/settings.local.json" ".claude/artifacts/*/")
+  local entries=(
+    ".env"
+    ".env.*"
+    "!.env.example"
+    ".ai-workflow/"
+    ".claude/CLAUDE.md"
+    ".claude/agents/"
+    ".claude/workflows/"
+    ".claude/commands/"
+    ".claude/artifacts/"
+    ".claude/settings.local.json"
+    ".opencode/agents/"
+    "opencode.json"
+  )
 
   if [[ -f "$gitignore" ]]; then
     local modified=false
@@ -625,9 +683,9 @@ main() {
 
   case "$TOOL" in
     claude-code) generate_claude_code ;;
-    codex)       generate_universal; generate_codex; safe_append_mode_protocol "$TARGET_DIR/AGENTS.md" "AGENTS.md" ;;
-    opencode)    generate_universal; generate_opencode; safe_append_mode_protocol "$TARGET_DIR/AGENTS.md" "AGENTS.md" ;;
-    all)         generate_universal; generate_claude_code; generate_codex; generate_opencode; safe_append_mode_protocol "$TARGET_DIR/AGENTS.md" "AGENTS.md" ;;
+    codex)       generate_universal; generate_codex ;;
+    opencode)    generate_universal; generate_opencode ;;
+    all)         generate_universal; generate_claude_code; generate_codex; generate_opencode ;;
   esac
 
   generate_gitignore
@@ -641,6 +699,7 @@ main() {
   $DRY_RUN && echo -e "  ${YELLOW}模式: DRY-RUN（未写入文件）${NC}"
   echo ""
   echo "  下一步：编辑 CLAUDE.md 顶部的项目概述，然后开始使用。"
+  echo "  卸载：./.ai-workflow/uninstall.sh"
 }
 
 main "$@"

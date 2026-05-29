@@ -1,5 +1,4 @@
-<!-- This file is a rendered reference. Actual install uses .ai-workflow/ directory for zero-intrusion. -->
-# AGENTS.md - Multi-Agent 协作协议
+# AI Workflow Protocol / 多 Agent 协作协议
 
 本文件定义项目的多 Agent 协作工作流，被 Claude Code / Codex CLI / OpenCode 等工具识别。
 

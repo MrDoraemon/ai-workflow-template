@@ -29,6 +29,7 @@ $ModeDescs = @("轻量模式：适合小改动、个人项目、快速原型", "
 
 $SelectedAgents = @()
 $SelectedWorkflows = @()
+$AgentsMdCreated = $false
 
 function Write-Info($Message) { Write-Host "[INFO] $Message" -ForegroundColor Blue }
 function Write-Ok($Message) { Write-Host "[OK] $Message" -ForegroundColor Green }
@@ -79,7 +80,8 @@ function Invoke-SafeAppend($Source, $Destination) {
 }
 
 function Ensure-Templates {
-  if (Test-Path (Join-Path $ScriptRoot "templates/universal/AGENTS.md")) {
+  if ((Test-Path (Join-Path $ScriptRoot "templates/universal/AGENTS.md")) -and
+      (Test-Path (Join-Path $ScriptRoot "templates/universal/ai-workflow"))) {
     return
   }
 
@@ -99,11 +101,11 @@ function Ensure-Templates {
   }
 
   $templatesDir = Get-ChildItem -LiteralPath $script:TempTemplateDir -Directory -Recurse |
-    Where-Object { $_.Name -eq "templates" -and (Test-Path (Join-Path $_.FullName "universal/AGENTS.md")) } |
+    Where-Object { $_.Name -eq "templates" -and (Test-Path (Join-Path $_.FullName "universal/AGENTS.md")) -and (Test-Path (Join-Path $_.FullName "universal/ai-workflow")) } |
     Select-Object -First 1
 
   if (-not $templatesDir) {
-    Stop-Init "模板包中未找到 templates/universal/AGENTS.md"
+    Stop-Init "模板包中未找到 templates/universal/ai-workflow"
   }
 
   $script:ScriptRoot = Split-Path -Parent $templatesDir.FullName
@@ -294,14 +296,66 @@ function Confirm-Interactive {
 }
 
 function Generate-Universal {
-  Write-Info "生成通用层 AGENTS.md..."
-  $target = Join-Path $TargetDir "AGENTS.md"
-  if (Test-Path $target) {
-    Write-Warn "AGENTS.md 已存在，跳过（如需更新请手动处理）"
-    return
+  Write-Info "生成通用层 .ai-workflow/..."
+
+  $aiWf = Join-Path $TargetDir ".ai-workflow"
+  $srcDir = Join-Path $ScriptRoot "templates/universal/ai-workflow"
+
+  Invoke-SafeMkdir $aiWf
+  Invoke-SafeMkdir (Join-Path $aiWf "agents")
+  Invoke-SafeMkdir (Join-Path $aiWf "workflows")
+
+  # protocol.md
+  $protocolSrc = Join-Path $srcDir "protocol.md"
+  $protocolDst = Join-Path $aiWf "protocol.md"
+  if (Test-Path $protocolSrc) {
+    if (Test-Path $protocolDst) {
+      Write-Ok ".ai-workflow/protocol.md 已存在，跳过"
+    } else {
+      Invoke-SafeCopy $protocolSrc $protocolDst
+      Write-Ok ".ai-workflow/protocol.md"
+    }
   }
-  Invoke-SafeCopy (Join-Path $ScriptRoot "templates/universal/AGENTS.md") $target
-  Write-Ok "AGENTS.md 已生成"
+
+  # agents
+  foreach ($agent in $SelectedAgents) {
+    $src = Join-Path $srcDir "agents/$agent-section.md"
+    $dst = Join-Path $aiWf "agents/$agent-section.md"
+    if ((Test-Path $src) -and -not (Test-Path $dst)) {
+      Invoke-SafeCopy $src $dst
+      Write-Ok ".ai-workflow/agents/$agent-section.md"
+    }
+  }
+
+  # workflows
+  foreach ($workflow in $SelectedWorkflows) {
+    $src = Join-Path $srcDir "workflows/$workflow.md"
+    $dst = Join-Path $aiWf "workflows/$workflow.md"
+    if ((Test-Path $src) -and -not (Test-Path $dst)) {
+      Invoke-SafeCopy $src $dst
+      Write-Ok ".ai-workflow/workflows/$workflow.md"
+    }
+  }
+
+  # uninstall.sh
+  $uninstallSrc = Join-Path $srcDir "uninstall.sh"
+  $uninstallDst = Join-Path $aiWf "uninstall.sh"
+  if (Test-Path $uninstallSrc) {
+    Invoke-SafeCopy $uninstallSrc $uninstallDst
+    Write-Ok ".ai-workflow/uninstall.sh"
+  }
+
+  # AGENTS.md (Codex): only create if not already exists
+  $agentsMd = Join-Path $TargetDir "AGENTS.md"
+  if (-not (Test-Path $agentsMd)) {
+    Invoke-SafeCopy (Join-Path $ScriptRoot "templates/universal/AGENTS.md") $agentsMd
+    $script:AgentsMdCreated = $true
+    Write-Ok "AGENTS.md 已生成（从通用模板）"
+  } else {
+    Write-Warn "AGENTS.md 已存在，不修改。通用协议见 .ai-workflow/protocol.md"
+  }
+
+  Write-Ok ".ai-workflow/ 通用层已生成"
 }
 
 function Generate-ClaudeCode {
@@ -361,35 +415,33 @@ function Generate-ClaudeCode {
   Invoke-SafeCopy (Join-Path $ScriptRoot "templates/claude-code/settings.local.json") (Join-Path $TargetDir ".claude/settings.local.json")
   Write-Ok "settings.local.json 已复制"
 
-  $claudePath = Join-Path $TargetDir "CLAUDE.md"
+  $claudePath = Join-Path $TargetDir ".claude/CLAUDE.md"
   $protocolPath = Join-Path $ScriptRoot "templates/claude-code/claude-md-protocol.md"
   if (Test-Path $protocolPath) {
-    if ((Test-Path $claudePath) -and (Select-String -LiteralPath $claudePath -Pattern "Multi-Agent 协作协议" -Quiet)) {
-      Write-Ok "CLAUDE.md 已包含多 Agent 协作协议，跳过"
-    } elseif (Test-Path $claudePath) {
-      if (-not $DryRun) { Add-Content -LiteralPath $claudePath -Value "" -Encoding UTF8 }
-      Invoke-SafeAppend $protocolPath $claudePath
-      Write-Ok "CLAUDE.md 已追加多 Agent 协作协议"
+    if (Test-Path $claudePath) {
+      Write-Ok ".claude/CLAUDE.md 已存在，跳过"
     } else {
       Invoke-SafeCopy $protocolPath $claudePath
-      Write-Ok "CLAUDE.md 已创建（含多 Agent 协作协议）"
+      Write-Ok ".claude/CLAUDE.md 已创建（含多 Agent 协作协议）"
     }
   }
 
-  Append-ModeProtocol $claudePath "CLAUDE.md"
+  Append-ModeProtocol $claudePath ".claude/CLAUDE.md"
 }
 
 function Generate-Codex {
   Write-Info "生成 Codex CLI 适配层..."
   $target = Join-Path $TargetDir "AGENTS.md"
+
+  # Zero-intrusion: only modify AGENTS.md if we created it in this run
+  if (-not $AgentsMdCreated) {
+    Write-Warn "AGENTS.md 为已有文件，跳过 Codex 角色追加（通用协议见 .ai-workflow/protocol.md）"
+    return
+  }
+
   foreach ($agent in $SelectedAgents) {
     $src = Join-Path $ScriptRoot "templates/codex/agents-md-sections/$($agent)-section.md"
     if (Test-Path $src) {
-      $marker = "## $agent（"
-      if ((Test-Path $target) -and (Select-String -LiteralPath $target -SimpleMatch $marker -Quiet)) {
-        Write-Ok "Codex 角色已存在: $agent，跳过"
-        continue
-      }
       Invoke-SafeAppend $src $target
       if (-not $DryRun) { Add-Content -LiteralPath $target -Value "" -Encoding UTF8 }
       Write-Ok "Codex 角色: $agent"
@@ -436,7 +488,20 @@ function Generate-OpenCode {
 
 function Generate-Gitignore {
   $gitignore = Join-Path $TargetDir ".gitignore"
-  $entries = @(".env", ".env.*", "!.env.example", ".claude/settings.local.json", ".claude/artifacts/*/")
+  $entries = @(
+    ".env"
+    ".env.*"
+    "!.env.example"
+    ".ai-workflow/"
+    ".claude/CLAUDE.md"
+    ".claude/agents/"
+    ".claude/workflows/"
+    ".claude/commands/"
+    ".claude/artifacts/"
+    ".claude/settings.local.json"
+    ".opencode/agents/"
+    "opencode.json"
+  )
 
   if (Test-Path $gitignore) {
     $content = Get-Content -LiteralPath $gitignore -Raw
@@ -540,19 +605,16 @@ try {
     "codex" {
       Generate-Universal
       Generate-Codex
-      Append-ModeProtocol (Join-Path $TargetDir "AGENTS.md") "AGENTS.md"
     }
     "opencode" {
       Generate-Universal
       Generate-OpenCode
-      Append-ModeProtocol (Join-Path $TargetDir "AGENTS.md") "AGENTS.md"
     }
     "all" {
       Generate-Universal
       Generate-ClaudeCode
       Generate-Codex
       Generate-OpenCode
-      Append-ModeProtocol (Join-Path $TargetDir "AGENTS.md") "AGENTS.md"
     }
   }
   Generate-Gitignore
@@ -566,6 +628,7 @@ try {
   if ($DryRun) { Write-Host "  模式: DRY-RUN（未写入文件）" -ForegroundColor Yellow }
   Write-Host ""
   Write-Host "  下一步：编辑 CLAUDE.md 顶部的项目概述，然后开始使用。"
+  Write-Host "  卸载：./.ai-workflow/uninstall.sh"
 } finally {
   if ($TempTemplateDir -and (Test-Path $TempTemplateDir)) {
     Remove-Item -LiteralPath $TempTemplateDir -Recurse -Force -ErrorAction SilentlyContinue
