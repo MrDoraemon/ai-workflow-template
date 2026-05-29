@@ -1,6 +1,22 @@
 <!-- This file is a rendered reference. Actual install uses .ai-workflow/ directory for zero-intrusion. -->
 # AGENTS.md - Multi-Agent 协作协议
 
+# 项目概述
+
+> 以下信息供 Agent 启动时读取项目上下文，请根据实际项目填写。
+
+## 项目简介
+<!-- 一段话描述项目目标和定位 -->
+
+## 技术栈
+<!-- 如：语言、框架、包管理、数据库等 -->
+
+## 目录结构
+<!-- 列出关键目录及其职责 -->
+
+## 开发命令
+<!-- 启动、构建、测试、lint 等命令 -->
+
 本文件定义项目的多 Agent 协作工作流，被 Claude Code / Codex CLI / OpenCode 等工具识别。
 
 ## 可用角色

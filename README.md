@@ -136,9 +136,15 @@ architect → PLG 编码合规审查
 
 ## 初始化后要做的事
 
-1. 编辑 `.claude/CLAUDE.md`（Claude Code 模式）或 `AGENTS.md`（Codex/OpenCode 模式），在顶部填写项目概述、技术栈、目录结构
+1. 编辑 `.claude/CLAUDE.md`（Claude Code 模式）或 `AGENTS.md`（Codex/OpenCode 模式），填写项目概述、技术栈、目录结构
 2. Agent 启动时会自动读取项目配置获取上下文
-3. 使用 `/需求分析` 等快捷命令（Claude Code 模式）开始工作
+3. 使用快捷命令（Claude Code 模式）开始工作：
+   - `/requirement` — 需求分析，输出 REQ 文档
+   - `/architecture` — 架构设计（含 TDR 方案选择），输出 ARCH 文档
+   - `/developer` — 编码实现
+   - `/qa` — 测试编写与执行
+   - `/review` — 代码评审
+   - `/security` — 安全审计
 4. 卸载工作流：`./.ai-workflow/uninstall.sh`
 
 ## 目录结构
