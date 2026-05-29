@@ -44,7 +44,7 @@ iwr https://raw.githubusercontent.com/MrDoraemon/ai-workflow-template/main/init-
 powershell -ExecutionPolicy Bypass -File $env:TEMP\init-workflow.ps1
 ```
 
-脚本会将模板文件复制到**当前目录**，不会修改模板源仓库。直接下载单脚本时，脚本会从 GitHub archive 自动下载 `templates/`。如使用 fork、私有仓库或指定分支，可设置：
+脚本采用**零侵入架构**：不修改项目中已有的 `AGENTS.md`、`CLAUDE.md` 等文件，所有工作流配置安装到 `.ai-workflow/` 目录。直接下载单脚本时，脚本会从 GitHub archive 自动下载 `templates/`。如使用 fork、私有仓库或指定分支，可设置：
 
 ```bash
 export AI_WORKFLOW_TEMPLATE_REPO=https://github.com/MrDoraemon/ai-workflow-template
@@ -92,17 +92,17 @@ powershell -ExecutionPolicy Bypass -File .\init-workflow.ps1 -Help
 | standard | 常规功能开发（默认推荐） | analyst → architect → developer → PLG → CTG → qa → reviewer |
 | strict | 生产级、安全敏感、多人协作 | standard + 强制 security + 更严格人工门控 + 发布检查 |
 
-初始化时选择的模式会写入 `AGENTS.md` 和 `CLAUDE.md`。单次任务可临时覆盖，例如“本次用 lite 模式修复”或“这个支付功能走 strict 模式”。
+初始化时选择的模式会写入 `.ai-workflow/` 配置。单次任务可临时覆盖，例如”本次用 lite 模式修复”或”这个支付功能走 strict 模式”。
 
 ## 工具适配说明
 
 | 工具 | 生成内容 | 说明 |
 |------|---------|------|
-| Claude Code | `.claude/agents/` + `workflows/` + `commands/` + `artifacts/` | 完整适配，含子 Agent 工具权限和危险命令 deny |
-| Codex CLI | 角色段落写入 `AGENTS.md` | 纯 Markdown 段落嵌入通用文件 |
+| Claude Code | `.claude/agents/` + `workflows/` + `commands/` + `artifacts/` + `.claude/CLAUDE.md` | 完整适配，含子 Agent 工具权限和危险命令 deny |
+| Codex CLI | 角色段落写入 `AGENTS.md`（仅脚本创建时） | 零侵入：已有 AGENTS.md 不修改 |
 | OpenCode | `.opencode/agents/` + `opencode.json` | 使用 Markdown agent + `permission` 字段控制读写与 Bash |
 
-权限控制采用“工具层限制 + 提示词约束”双层设计：`reviewer`、`security` 在 Claude Code 和 OpenCode 中禁用写入与 Bash；`developer`、`qa`、`devops` 才保留必要的编辑或执行权限。Codex CLI 当前以 `AGENTS.md` 约束为主，不能提供同等粒度的子 Agent 工具隔离。
+权限控制采用”工具层限制 + 提示词约束”双层设计：`reviewer`、`security` 在 Claude Code 和 OpenCode 中禁用写入与 Bash；`developer`、`qa`、`devops` 才保留必要的编辑或执行权限。Codex CLI 当前以 `AGENTS.md` 约束为主，不能提供同等粒度的子 Agent 工具隔离。所有工具通用协议统一安装在 `.ai-workflow/` 目录，卸载执行 `./.ai-workflow/uninstall.sh`。
 
 ## Agent 角色
 
@@ -134,9 +134,10 @@ architect → PLG 编码合规审查
 
 ## 初始化后要做的事
 
-1. 编辑 `CLAUDE.md`，在顶部填写项目概述、技术栈、目录结构
-2. Agent 启动时会自动读取 CLAUDE.md 获取项目上下文
+1. 编辑 `.claude/CLAUDE.md`（Claude Code 模式）或 `AGENTS.md`（Codex/OpenCode 模式），在顶部填写项目概述、技术栈、目录结构
+2. Agent 启动时会自动读取项目配置获取上下文
 3. 使用 `/需求分析` 等快捷命令（Claude Code 模式）开始工作
+4. 卸载工作流：`./.ai-workflow/uninstall.sh`
 
 ## 目录结构
 
@@ -145,13 +146,19 @@ ai-workflow-template/
 ├── init-workflow.sh              # 初始化脚本
 ├── init-workflow.ps1             # Windows PowerShell 初始化脚本
 ├── templates/
-│   ├── universal/                # 通用层（AGENTS.md）
+│   ├── universal/                # 通用层
+│   │   ├── AGENTS.md             # AGENTS.md 模板（仅新建时使用）
+│   │   └── ai-workflow/          # 零侵入通用工作流
+│   │       ├── protocol.md       # 通用协议
+│   │       ├── uninstall.sh      # 卸载脚本
+│   │       ├── agents/           # 7 个 Agent 段落
+│   │       └── workflows/        # 3 条工作流
 │   ├── claude-code/              # Claude Code 适配
 │   │   ├── agents/               # 7 个 Agent 定义
 │   │   ├── workflows/            # 3 条工作流
 │   │   ├── commands/             # 6 个快捷命令
 │   │   ├── artifacts/            # 产出物骨架
-│   │   ├── claude-md-protocol.md # CLAUDE.md 协议片段
+│   │   ├── claude-md-protocol.md # .claude/CLAUDE.md 协议片段
 │   │   └── settings.local.json   # 权限配置
 │   ├── codex/                    # Codex CLI 适配
 │   │   └── agents-md-sections/   # 7 个角色段落
