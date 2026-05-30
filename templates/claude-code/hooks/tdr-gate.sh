@@ -69,6 +69,6 @@ jq -n '{
   hookSpecificOutput: {
     hookEventName: "PreToolUse",
     permissionDecision: "deny",
-    "permissionDecisionReason": "TDR（技术决策评审）尚未完成或未获用户确认。必须先完成 TDR 阶段，由用户确认技术方案选择后，才能进入 ARCH 设计阶段。如需跳过 TDR，请切换到 lite 模式。"
+    "permissionDecisionReason": "TDR（技术决策评审）尚未完成或未获用户确认。必须先完成 TDR 阶段，由用户确认技术方案选择后，才能进入 ARCH 设计阶段。"
   }
 }'

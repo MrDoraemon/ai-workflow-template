@@ -157,7 +157,7 @@ function Append-ModeProtocol($Target, $Label) {
       $lines += "- developer 必须完成必要上下文确认、实现、自测和验证命令。"
       $lines += "- reviewer、qa、security 按风险触发，不强制每次调用。"
       $lines += "- CTG 只检查本次变更相关的运行、构建、测试、依赖和配置项。"
-      $lines += "- TDR（技术决策评审）可选跳过；architect 可直接进入 ARCH 设计，但需在文档中注明跳过原因。"
+      $lines += "- TDR（技术决策评审）仍需执行，但用户确认时可快速通过。"
     }
     "standard" {
       $lines += "- 默认执行完整常规流水线：analyst → architect → developer → PLG → CTG → qa → reviewer。"

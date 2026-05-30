@@ -252,7 +252,7 @@ safe_append_mode_protocol() {
         printf '%s\n' '- developer 必须完成必要上下文确认、实现、自测和验证命令。'
         printf '%s\n' '- reviewer、qa、security 按风险触发，不强制每次调用。'
         printf '%s\n' '- CTG 只检查本次变更相关的运行、构建、测试、依赖和配置项。'
-        printf '%s\n' '- TDR（技术决策评审）可选跳过；architect 可直接进入 ARCH 设计，但需在文档中注明跳过原因。'
+        printf '%s\n' '- TDR（技术决策评审）仍需执行，但用户确认时可快速通过。'
         ;;
       standard)
         printf '%s\n' '- 默认执行完整常规流水线：analyst → architect → developer → PLG → CTG → qa → reviewer。'

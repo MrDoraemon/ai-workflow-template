@@ -26,8 +26,8 @@
 2. architect 输出 TDR-{YYYYMMDD}-{NNN} 文档（技术决策评审）
    - 识别关键技术决策点，每个提供多选项（含优势/劣势）和推荐
    - 如无需要用户参与的决策点，在"无需用户决策的技术选型"章节说明
-   - **lite 模式**：architect 可输出"TDR: 跳过（lite 模式）"并直接进入步骤 4
 3. **方案选择门控点**：展示 TDR 文档，等待用户逐项选择
+   - **architect 输出 TDR 后必须立即停止，不得继续输出 ARCH 文档**
    - 用户可接受推荐或选择其他选项，可补充额外约束
    - 用户确认后，主会话创建 `.claude/artifacts/architectures/TDR-{YYYYMMDD}-{NNN}.confirmed` 标记文件
 4. 将用户选择结果 + REQ 文档传递给 architect Agent（调度指令：ARCH 阶段）
