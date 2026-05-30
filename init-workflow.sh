@@ -253,12 +253,14 @@ safe_append_mode_protocol() {
         printf '%s\n' '- reviewer、qa、security 按风险触发，不强制每次调用。'
         printf '%s\n' '- CTG 只检查本次变更相关的运行、构建、测试、依赖和配置项。'
         printf '%s\n' '- TDR（技术决策评审）仍需执行，但用户确认时可快速通过。'
+        printf '%s\n' '- RCG（需求澄清）仍需执行，analyst 输出精简版 RCU，用户可快速通过。'
         ;;
       standard)
         printf '%s\n' '- 默认执行完整常规流水线：analyst → architect → developer → PLG → CTG → qa → reviewer。'
         printf '%s\n' '- DG、CG、PLG、CTG 按模板定义执行；阻断项必须修复。'
         printf '%s\n' '- security 在安全敏感、认证授权、依赖、配置、数据处理相关变更时触发。'
         printf '%s\n' '- architect 必须在 ARCH 文档前输出 TDR（技术决策评审），用户确认选择后再进入详细设计。'
+        printf '%s\n' '- analyst 必须在 REQ 文档前输出 RCU（需求理解确认），用户确认理解后再生成 REQ。'
         ;;
       strict)
         printf '%s\n' '- analyst、architect、developer、qa、reviewer 必须参与；security 默认强制参与。'
@@ -266,6 +268,7 @@ safe_append_mode_protocol() {
         printf '%s\n' '- DG、CG、PLG、CTG 必须 100% 执行；任何阻断项不得带病推进。'
         printf '%s\n' '- 需求确认、架构确认、交付终审和发布/部署前确认均作为人工门控点。'
         printf '%s\n' '- TDR（技术决策评审）为强制步骤且必须存档；用户必须明确确认每个决策项。'
+        printf '%s\n' '- RCG（需求澄清）为强制步骤；analyst 必须输出完整 RCU 并逐项获得用户确认后才能生成 REQ。'
         ;;
     esac
     printf '<!-- AI-WORKFLOW-MODE:end -->\n'
@@ -422,6 +425,13 @@ generate_universal() {
     ok ".ai-workflow/uninstall.sh"
   fi
 
+  # artifacts directories (cross-tool compatible)
+  safe_mkdir "$ai_wf/artifacts/"{requirements,architectures,reviews,tests,security}
+  for subdir in requirements architectures reviews tests security; do
+    $DRY_RUN || touch "$ai_wf/artifacts/${subdir}/.gitkeep"
+  done
+  ok "产出物存档目录已创建（.ai-workflow/artifacts/）"
+
   # AGENTS.md (Codex): only create if not already exists
   if [[ ! -f "$TARGET_DIR/AGENTS.md" ]]; then
     safe_cp "$SCRIPT_DIR/templates/universal/AGENTS.md" "$TARGET_DIR/AGENTS.md"
@@ -438,7 +448,6 @@ generate_claude_code() {
   info "生成 Claude Code 适配层..."
 
   safe_mkdir "$TARGET_DIR/.claude/"{agents,workflows,commands}
-  safe_mkdir "$TARGET_DIR/.claude/artifacts/"{requirements,architectures,reviews,tests,security}
 
   for agent in "${SELECTED_AGENTS[@]}"; do
     local src="$SCRIPT_DIR/templates/claude-code/agents/${agent}.md"
@@ -471,12 +480,6 @@ generate_claude_code() {
     fi
   done
   ok "快捷命令: ${copied_cmds[*]:-无}"
-
-  safe_cp "$SCRIPT_DIR/templates/claude-code/artifacts/index.md" "$TARGET_DIR/.claude/artifacts/index.md"
-  for subdir in requirements architectures reviews tests security; do
-    $DRY_RUN || touch "$TARGET_DIR/.claude/artifacts/${subdir}/.gitkeep"
-  done
-  ok "产出物存档目录已创建"
 
   safe_cp "$SCRIPT_DIR/templates/claude-code/settings.local.json" "$TARGET_DIR/.claude/settings.local.json"
   ok "settings.local.json 已复制"

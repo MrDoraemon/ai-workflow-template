@@ -158,12 +158,14 @@ function Append-ModeProtocol($Target, $Label) {
       $lines += "- reviewer、qa、security 按风险触发，不强制每次调用。"
       $lines += "- CTG 只检查本次变更相关的运行、构建、测试、依赖和配置项。"
       $lines += "- TDR（技术决策评审）仍需执行，但用户确认时可快速通过。"
+      $lines += "- RCG（需求澄清）仍需执行，analyst 输出精简版 RCU，用户可快速通过。"
     }
     "standard" {
       $lines += "- 默认执行完整常规流水线：analyst → architect → developer → PLG → CTG → qa → reviewer。"
       $lines += "- DG、CG、PLG、CTG 按模板定义执行；阻断项必须修复。"
       $lines += "- security 在安全敏感、认证授权、依赖、配置、数据处理相关变更时触发。"
       $lines += "- architect 必须在 ARCH 文档前输出 TDR（技术决策评审），用户确认选择后再进入详细设计。"
+      $lines += "- analyst 必须在 REQ 文档前输出 RCU（需求理解确认），用户确认理解后再生成 REQ。"
     }
     "strict" {
       $lines += "- analyst、architect、developer、qa、reviewer 必须参与；security 默认强制参与。"
@@ -171,6 +173,7 @@ function Append-ModeProtocol($Target, $Label) {
       $lines += "- DG、CG、PLG、CTG 必须 100% 执行；任何阻断项不得带病推进。"
       $lines += "- 需求确认、架构确认、交付终审和发布/部署前确认均作为人工门控点。"
       $lines += "- TDR（技术决策评审）为强制步骤且必须存档；用户必须明确确认每个决策项。"
+      $lines += "- RCG（需求澄清）为强制步骤；analyst 必须输出完整 RCU 并逐项获得用户确认后才能生成 REQ。"
     }
   }
 
@@ -348,6 +351,16 @@ function Generate-Universal {
     Write-Ok ".ai-workflow/uninstall.sh"
   }
 
+  # artifacts directories (cross-tool compatible)
+  Invoke-SafeMkdir (Join-Path $aiWf "artifacts")
+  foreach ($subdir in @("requirements", "architectures", "reviews", "tests", "security")) {
+    Invoke-SafeMkdir (Join-Path $aiWf "artifacts/$subdir")
+    if (-not $DryRun) {
+      New-Item -ItemType File -Force -Path (Join-Path $aiWf "artifacts/$subdir/.gitkeep") | Out-Null
+    }
+  }
+  Write-Ok "产出物存档目录已创建（.ai-workflow/artifacts/）"
+
   # AGENTS.md (Codex): only create if not already exists
   $agentsMd = Join-Path $TargetDir "AGENTS.md"
   if (-not (Test-Path $agentsMd)) {
@@ -367,12 +380,7 @@ function Generate-ClaudeCode {
   foreach ($path in @(
     ".claude/agents",
     ".claude/workflows",
-    ".claude/commands",
-    ".claude/artifacts/requirements",
-    ".claude/artifacts/architectures",
-    ".claude/artifacts/reviews",
-    ".claude/artifacts/tests",
-    ".claude/artifacts/security"
+    ".claude/commands"
   )) {
     Invoke-SafeMkdir (Join-Path $TargetDir $path)
   }
@@ -406,14 +414,6 @@ function Generate-ClaudeCode {
     }
   }
   if ($copiedCmds.Count -eq 0) { Write-Ok "快捷命令: 无" } else { Write-Ok "快捷命令: $($copiedCmds -join ' ')" }
-
-  Invoke-SafeCopy (Join-Path $ScriptRoot "templates/claude-code/artifacts/index.md") (Join-Path $TargetDir ".claude/artifacts/index.md")
-  if (-not $DryRun) {
-    foreach ($subdir in @("requirements", "architectures", "reviews", "tests", "security")) {
-      New-Item -ItemType File -Force -Path (Join-Path $TargetDir ".claude/artifacts/$subdir/.gitkeep") | Out-Null
-    }
-  }
-  Write-Ok "产出物存档目录已创建"
 
   Invoke-SafeCopy (Join-Path $ScriptRoot "templates/claude-code/settings.local.json") (Join-Path $TargetDir ".claude/settings.local.json")
   Write-Ok "settings.local.json 已复制"

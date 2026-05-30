@@ -6,7 +6,7 @@
 
 - **7 个专业 Agent 角色**：需求分析师、架构师、开发工程师、测试工程师、代码评审员、安全审计员、运维工程师
 - **3 条工作流**：新功能开发（含 4 阶段质量门控）、Bug 修复、发布部署
-- **4 阶段质量门控 + TDR 方案选择**：技术决策评审(TDR) → 设计预检(DG) → 编码前预检(CG) → 编码合规(PLG) → 交付预检(CTG)
+- **4 阶段质量门控 + RCG 需求澄清 + TDR 方案选择**：需求澄清(RCG) → 技术决策评审(TDR) → 设计预检(DG) → 编码前预检(CG) → 编码合规(PLG) → 交付预检(CTG)
 - **3 档流程强度**：lite / standard / strict，可按项目默认选择，也可在单次任务中临时覆盖
 - **跨系统初始化**：支持 macOS / Linux / Git Bash 的 Bash 脚本，也支持 Windows PowerShell
 - **跨工具兼容**：支持 Claude Code、Codex CLI、OpenCode
@@ -88,9 +88,9 @@ powershell -ExecutionPolicy Bypass -File .\init-workflow.ps1 -Help
 
 | 模式 | 适用场景 | 默认流程 |
 |------|----------|----------|
-| lite | 小改动、快速原型、低风险修复 | developer 实现 → 自测/构建 → 可选 reviewer（TDR 可跳过） |
-| standard | 常规功能开发（默认推荐） | analyst → architect(+TDR 方案选择) → developer → PLG → CTG → qa → reviewer |
-| strict | 生产级、安全敏感、多人协作 | standard + 强制 security + TDR 必须存档 + 更严格人工门控 + 发布检查 |
+| lite | 小改动、快速原型、低风险修复 | developer 实现 → 自测/构建 → 可选 reviewer（RCG/TDR 可快速通过） |
+| standard | 常规功能开发（默认推荐） | analyst(+RCG 需求澄清) → architect(+TDR 方案选择) → developer → PLG → CTG → qa → reviewer |
+| strict | 生产级、安全敏感、多人协作 | standard + 强制 security + RCG/TDR 必须存档 + 更严格人工门控 + 发布检查 |
 
 初始化时选择的模式会写入 `.ai-workflow/` 配置。单次任务可临时覆盖，例如”本次用 lite 模式修复”或”这个支付功能走 strict 模式”。
 
@@ -98,11 +98,11 @@ powershell -ExecutionPolicy Bypass -File .\init-workflow.ps1 -Help
 
 | 工具 | 生成内容 | 说明 |
 |------|---------|------|
-| Claude Code | `.claude/agents/` + `workflows/` + `commands/` + `artifacts/` + `.claude/CLAUDE.md` + `.claude/hooks/` | 完整适配，含子 Agent 工具权限、危险命令 deny 和 TDR Hook 硬约束 |
+| Claude Code | `.claude/agents/` + `workflows/` + `commands/` + `.claude/CLAUDE.md` + `.claude/hooks/` | 完整适配，含子 Agent 工具权限、危险命令 deny 和 TDR Hook 硬约束 |
 | Codex CLI | 角色段落写入 `AGENTS.md`（仅脚本创建时） | 零侵入：已有 AGENTS.md 不修改 |
 | OpenCode | `.opencode/agents/` + `opencode.json` | 使用 Markdown agent + `permission` 字段控制读写与 Bash |
 
-权限控制采用”工具层限制 + 提示词约束”双层设计：`reviewer`、`security` 在 Claude Code 和 OpenCode 中禁用写入与 Bash；`developer`、`qa`、`devops` 才保留必要的编辑或执行权限。TDR（技术决策评审）在 Claude Code 中通过 PreToolUse Hook 实现硬约束：未完成 TDR 确认时 Hook 自动阻断 architect 生成 ARCH 文档的调用。Codex CLI 当前以 `AGENTS.md` 约束为主，不能提供同等粒度的子 Agent 工具隔离和 Hook 硬约束。所有工具通用协议统一安装在 `.ai-workflow/` 目录，卸载执行 `./.ai-workflow/uninstall.sh`。
+权限控制采用”工具层限制 + 提示词约束”双层设计：`reviewer`、`security` 在 Claude Code 和 OpenCode 中禁用写入与 Bash；`developer`、`qa`、`devops` 才保留必要的编辑或执行权限。RCG（需求澄清）在所有工具中通过 analyst 强制输出 RCU 实现；TDR（技术决策评审）在 Claude Code 中通过 PreToolUse Hook 实现硬约束：未完成 TDR 确认时 Hook 自动阻断 architect 生成 ARCH 文档的调用。Codex CLI 当前以 `AGENTS.md` 约束为主，不能提供同等粒度的子 Agent 工具隔离和 Hook 硬约束。所有工具通用协议统一安装在 `.ai-workflow/` 目录，产出物存档到 `.ai-workflow/artifacts/`，卸载执行 `./.ai-workflow/uninstall.sh`。
 
 ## Agent 角色
 
@@ -120,6 +120,8 @@ powershell -ExecutionPolicy Bypass -File .\init-workflow.ps1 -Help
 
 ```
 用户需求
+  ↓
+analyst → RCU（需求理解确认 + 用户确认）
   ↓
 analyst → REQ 文档（需求分析）
   ↓
@@ -166,7 +168,7 @@ ai-workflow-template/
 │   │   ├── workflows/            # 3 条工作流
 │   │   ├── commands/             # 6 个快捷命令
 │   │   ├── hooks/                # PreToolUse Hook（TDR 硬约束）
-│   │   ├── artifacts/            # 产出物骨架
+│   │   ├── artifacts/            # 产出物骨架（index.md）
 │   │   ├── claude-md-protocol.md # .claude/CLAUDE.md 协议片段
 │   │   └── settings.local.json   # 权限配置 + Hook 注册
 │   ├── codex/                    # Codex CLI 适配

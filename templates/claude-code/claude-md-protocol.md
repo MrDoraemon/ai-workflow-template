@@ -68,22 +68,22 @@
 
 ### 流水线触发规则
 
-- **新功能需求** → analyst → architect(+TDR 方案选择+设计自检 DG) → developer(+上下文预检 CG，可按模块并行调度) → architect(+编码合规预检 PLG) → 交付预检(CTG) → qa → reviewer
+- **新功能需求** → analyst(+RCG 需求澄清) → architect(+TDR 方案选择+设计自检 DG) → developer(+上下文预检 CG，可按模块并行调度) → architect(+编码合规预检 PLG) → 交付预检(CTG) → qa → reviewer
 - **Bug 修复** → 定位问题 → developer → qa → reviewer
 - **代码评审** → reviewer（可选 + security）
 - **部署** → qa → security → devops
 
 ### 产出物存档规范
 
-流水线执行过程中，主会话在收到 Agent 输出后，必须将结构化产出物存档到 `.claude/artifacts/` 对应子目录。
+流水线执行过程中，主会话在收到 Agent 输出后，必须将结构化产出物存档到 `.ai-workflow/artifacts/` 对应子目录。
 
 - **存档目录**：
-  - `.claude/artifacts/requirements/` — REQ 需求文档
-  - `.claude/artifacts/architectures/` — ARCH 架构文档
-  - `.claude/artifacts/reviews/` — REV 评审报告
-  - `.claude/artifacts/tests/` — TEST 测试报告
-  - `.claude/artifacts/security/` — SEC 安全审计报告
-- **索引更新**：每次存档后更新 `.claude/artifacts/index.md`
+  - `.ai-workflow/artifacts/requirements/` — REQ 需求文档
+  - `.ai-workflow/artifacts/architectures/` — ARCH 架构文档
+  - `.ai-workflow/artifacts/reviews/` — REV 评审报告
+  - `.ai-workflow/artifacts/tests/` — TEST 测试报告
+  - `.ai-workflow/artifacts/security/` — SEC 安全审计报告
+- **索引更新**：每次存档后更新 `.ai-workflow/artifacts/index.md`
 
 ### 预检机制（四阶段质量门控）
 

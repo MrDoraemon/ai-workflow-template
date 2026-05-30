@@ -56,7 +56,7 @@ if [ -f "$CLAUDE_MD" ]; then
 fi
 
 # Check for confirmed TDR marker file
-ARTIFACTS_DIR="$CWD/.claude/artifacts/architectures"
+ARTIFACTS_DIR="$CWD/.ai-workflow/artifacts/architectures"
 if [ -d "$ARTIFACTS_DIR" ]; then
   CONFIRMED=$(find "$ARTIFACTS_DIR" -name "TDR-*.confirmed" -type f 2>/dev/null | head -1)
   if [ -n "$CONFIRMED" ]; then
