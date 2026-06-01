@@ -1,6 +1,9 @@
 # Claude Code local config
 .claude/
 
+# oh-my-claudecode state
+.omc/
+
 # macOS
 .DS_Store
 

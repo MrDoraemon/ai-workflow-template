@@ -2,6 +2,7 @@
 # init-workflow.sh - AI-Native Workflow 初始化向导
 # 支持 --tool claude-code|codex|opencode|all
 # 支持 --mode lite|standard|strict
+# 支持 --runtime native|oh-my-claudecode|oh-my-opencode
 # 用法:
 #   ./init-workflow.sh                              # 交互式向导
 #   ./init-workflow.sh --tool claude-code --mode standard --non-interactive
@@ -19,6 +20,7 @@ TEMP_TEMPLATE_DIR=""
 # ─── 默认值 ───
 TOOL=""
 MODE=""
+RUNTIME=""
 NON_INTERACTIVE=false
 DRY_RUN=false
 SELECTED_AGENTS=()
@@ -28,7 +30,7 @@ AGENTS_MD_CREATED=false
 # ─── Agent 注册表（平行索引数组，兼容 bash 3.2）───
 AGENT_NAMES=(analyst architect developer qa reviewer security devops)
 AGENT_DESCS=("需求分析" "架构设计" "功能开发" "质量保证" "代码评审" "安全审计" "运维部署")
-AGENT_CMD_FILES=("需求分析.md" "架构设计.md" "开发.md" "测试.md" "评审专家.md" "安全审计.md" "")
+AGENT_CMD_FILES=("requirement.md" "architecture.md" "developer.md" "qa.md" "review.md" "security.md" "")
 
 # ─── 工作流注册表 ───
 WORKFLOW_NAMES=(feature-flow bugfix-flow release-flow)
@@ -37,6 +39,10 @@ WORKFLOW_DESCS=("新功能开发（含 4 阶段质量门控）" "Bug 修复" "�
 # ─── 流程强度模式 ───
 MODE_NAMES=(lite standard strict)
 MODE_DESCS=("轻量模式：适合小改动、个人项目、快速原型" "标准模式：默认推荐，适合常规功能开发" "严格模式：适合生产级、多人协作、安全敏感项目")
+
+# ─── Runtime 适配层 ───
+RUNTIME_NAMES=(native oh-my-claudecode oh-my-opencode)
+RUNTIME_DESCS=("原生轻量适配：生成本项目自带 Agent 模板" "oh-my-claudecode 适配：只生成协议和模式映射，不重复生成 Agent" "oh-my-opencode 适配：只生成协议和模式映射，不重复生成 Agent")
 
 # ─── 查找函数（替代关联数组）───
 _agent_idx() {
@@ -53,6 +59,12 @@ _wf_idx() {
 _mode_idx() {
   local i
   for i in "${!MODE_NAMES[@]}"; do [[ "${MODE_NAMES[$i]}" == "$1" ]] && echo "$i" && return; done
+  echo ""
+}
+
+_runtime_idx() {
+  local i
+  for i in "${!RUNTIME_NAMES[@]}"; do [[ "${RUNTIME_NAMES[$i]}" == "$1" ]] && echo "$i" && return; done
   echo ""
 }
 
@@ -119,6 +131,18 @@ validate_tool() {
   case "$TOOL" in
     claude-code|codex|opencode|all) ;;
     *) error "未知 AI 编码工具: ${TOOL}（可选: claude-code|codex|opencode|all）" ;;
+  esac
+}
+
+validate_runtime() {
+  [[ -n "$(_runtime_idx "$RUNTIME")" ]] || error "未知 runtime: ${RUNTIME}（可选: native|oh-my-claudecode|oh-my-opencode）"
+
+  case "$RUNTIME:$TOOL" in
+    native:*) ;;
+    oh-my-claudecode:claude-code) ;;
+    oh-my-opencode:opencode) ;;
+    oh-my-claudecode:*) error "runtime=oh-my-claudecode 仅适用于 --tool claude-code" ;;
+    oh-my-opencode:*) error "runtime=oh-my-opencode 仅适用于 --tool opencode" ;;
   esac
 }
 
@@ -281,7 +305,7 @@ safe_append_mode_protocol() {
 
 step1_select_tool() {
   echo ""
-  echo -e "${CYAN}Step 1/5: 选择 AI 编码工具${NC}"
+  echo -e "${CYAN}Step 1/6: 选择 AI 编码工具${NC}"
   echo "  1) Claude Code（完整多 Agent 编排 + 子 Agent 权限控制）"
   echo "  2) Codex CLI（AGENTS.md 角色段落模式）"
   echo "  3) OpenCode（.opencode/agents/ 子 Agent 模式）"
@@ -297,9 +321,26 @@ step1_select_tool() {
   esac
 }
 
-step2_select_agents() {
+step2_select_runtime() {
   echo ""
-  echo -e "${CYAN}Step 2/5: 选择需要的 Agent（输入编号，逗号分隔）${NC}"
+  echo -e "${CYAN}Step 2/6: 选择 Runtime 适配层${NC}"
+  local i
+  for i in "${!RUNTIME_NAMES[@]}"; do
+    echo "  $((i+1))) ${RUNTIME_NAMES[$i]}  ${RUNTIME_DESCS[$i]}"
+  done
+  echo -n "> "
+  read -r choice
+  case "$choice" in
+    1|"") RUNTIME="native" ;;
+    2) RUNTIME="oh-my-claudecode" ;;
+    3) RUNTIME="oh-my-opencode" ;;
+    *) RUNTIME="native" ; info "默认选择 native" ;;
+  esac
+}
+
+step3_select_agents() {
+  echo ""
+  echo -e "${CYAN}Step 3/6: 选择需要的角色契约（输入编号，逗号分隔）${NC}"
   local i=1 idx
   for i in "${!AGENT_NAMES[@]}"; do
     echo "  $((i+1))) ${AGENT_NAMES[$i]}  ${AGENT_DESCS[$i]}"
@@ -322,9 +363,9 @@ step2_select_agents() {
   fi
 }
 
-step3_select_workflows() {
+step4_select_workflows() {
   echo ""
-  echo -e "${CYAN}Step 3/5: 选择工作流（输入编号，逗号分隔）${NC}"
+  echo -e "${CYAN}Step 4/6: 选择工作流（输入编号，逗号分隔）${NC}"
   local i n
   for n in "${!WORKFLOW_NAMES[@]}"; do
     echo "  $((n+1))) ${WORKFLOW_NAMES[$n]}  ${WORKFLOW_DESCS[$n]}"
@@ -347,9 +388,9 @@ step3_select_workflows() {
   fi
 }
 
-step4_select_mode() {
+step5_select_mode() {
   echo ""
-  echo -e "${CYAN}Step 4/5: 选择流程强度${NC}"
+  echo -e "${CYAN}Step 5/6: 选择流程强度${NC}"
   local i
   for i in "${!MODE_NAMES[@]}"; do
     echo "  $((i+1))) ${MODE_NAMES[$i]}  ${MODE_DESCS[$i]}"
@@ -366,9 +407,10 @@ step4_select_mode() {
 
 step5_confirm() {
   echo ""
-  echo -e "${CYAN}Step 5/5: 确认${NC}"
+  echo -e "${CYAN}Step 6/6: 确认${NC}"
   echo "  工具: $TOOL"
-  echo "  Agent: ${SELECTED_AGENTS[*]}"
+  echo "  Runtime: $RUNTIME"
+  echo "  角色契约: ${SELECTED_AGENTS[*]}"
   echo "  工作流: ${SELECTED_WORKFLOWS[*]}"
   echo "  流程强度: $MODE"
   $DRY_RUN && echo "  模式: DRY-RUN（仅预览）"
@@ -388,24 +430,16 @@ generate_universal() {
   local ai_wf="$TARGET_DIR/.ai-workflow"
   local src_dir="$SCRIPT_DIR/templates/universal/ai-workflow"
 
-  safe_mkdir "$ai_wf" "$ai_wf/agents" "$ai_wf/workflows"
+  safe_mkdir "$ai_wf" "$ai_wf/workflows" "$ai_wf/runtimes"
 
-  # protocol.md
-  if [[ -f "$src_dir/protocol.md" ]]; then
-    if [[ -f "$ai_wf/protocol.md" ]]; then
-      ok ".ai-workflow/protocol.md 已存在，跳过"
-    else
-      safe_cp "$src_dir/protocol.md" "$ai_wf/protocol.md"
-      ok ".ai-workflow/protocol.md"
-    fi
-  fi
-
-  # agents
-  for agent in "${SELECTED_AGENTS[@]}"; do
-    local src="$src_dir/agents/${agent}-section.md"
-    if [[ -f "$src" ]] && [[ ! -f "$ai_wf/agents/${agent}-section.md" ]]; then
-      safe_cp "$src" "$ai_wf/agents/${agent}-section.md"
-      ok ".ai-workflow/agents/${agent}-section.md"
+  for doc in protocol.md roles.md gates.md runtime-map.md; do
+    if [[ -f "$src_dir/$doc" ]]; then
+      if [[ -f "$ai_wf/$doc" ]]; then
+        ok ".ai-workflow/$doc 已存在，跳过"
+      else
+        safe_cp "$src_dir/$doc" "$ai_wf/$doc"
+        ok ".ai-workflow/$doc"
+      fi
     fi
   done
 
@@ -444,8 +478,35 @@ generate_universal() {
   ok ".ai-workflow/ 通用层已生成"
 }
 
+generate_runtime_adapter() {
+  [[ "$RUNTIME" == "native" ]] && return
+
+  info "生成 Runtime Adapter: ${RUNTIME}"
+  local src_dir="$SCRIPT_DIR/templates/runtimes/$RUNTIME"
+  local dst_dir="$TARGET_DIR/.ai-workflow/runtimes/$RUNTIME"
+
+  [[ -d "$src_dir" ]] || error "缺少 runtime adapter 模板: templates/runtimes/$RUNTIME"
+  safe_mkdir "$dst_dir"
+
+  local file rel dst parent
+  while IFS= read -r file; do
+    rel="${file#$src_dir/}"
+    dst="$dst_dir/$rel"
+    parent="$(dirname "$dst")"
+    safe_mkdir "$parent"
+    safe_cp "$file" "$dst"
+  done < <(find "$src_dir" -type f | sort)
+
+  ok "Runtime Adapter 已生成: .ai-workflow/runtimes/${RUNTIME}"
+}
+
 generate_claude_code() {
   info "生成 Claude Code 适配层..."
+
+  if [[ "$RUNTIME" == "oh-my-claudecode" ]]; then
+    info "oh-my-claudecode runtime 使用外部编排能力，跳过本项目 Claude Agent/commands/hooks 生成"
+    return
+  fi
 
   safe_mkdir "$TARGET_DIR/.claude/"{agents,workflows,commands}
 
@@ -528,6 +589,11 @@ generate_codex() {
 generate_opencode() {
   info "生成 OpenCode 适配层..."
 
+  if [[ "$RUNTIME" == "oh-my-opencode" ]]; then
+    info "oh-my-opencode runtime 使用外部编排能力，跳过本项目 OpenCode Agent/opencode.json 生成"
+    return
+  fi
+
   safe_mkdir "$TARGET_DIR/.opencode/agents"
 
   for agent in "${SELECTED_AGENTS[@]}"; do
@@ -607,6 +673,8 @@ parse_args() {
         require_arg "$1" "${2-}"; TOOL="$2"; shift 2 ;;
       --mode)
         require_arg "$1" "${2-}"; MODE="$2"; shift 2 ;;
+      --runtime)
+        require_arg "$1" "${2-}"; RUNTIME="$2"; shift 2 ;;
       --non-interactive)
         NON_INTERACTIVE=true; shift ;;
       --dry-run)
@@ -616,7 +684,7 @@ parse_args() {
       --workflows)
         require_arg "$1" "${2-}"; IFS=',' read -ra SELECTED_WORKFLOWS <<< "$2"; shift 2 ;;
       --help|-h)
-        echo "用法: $0 [--tool claude-code|codex|opencode|all] [--mode lite|standard|strict] [--agents a,b,c] [--workflows a,b] [--non-interactive] [--dry-run]"
+        echo "用法: $0 [--tool claude-code|codex|opencode|all] [--runtime native|oh-my-claudecode|oh-my-opencode] [--mode lite|standard|strict] [--agents a,b,c] [--workflows a,b] [--non-interactive] [--dry-run]"
         exit 0 ;;
       *)
         error "未知参数: $1" ;;
@@ -647,19 +715,28 @@ main() {
   fi
   validate_tool
 
+  if [[ -z "$RUNTIME" ]]; then
+    if $NON_INTERACTIVE; then
+      RUNTIME="native"
+    else
+      step2_select_runtime
+    fi
+  fi
+  validate_runtime
+
   if ! $NON_INTERACTIVE; then
     if [[ ${#SELECTED_AGENTS[@]} -eq 0 ]]; then
-      step2_select_agents
+      step3_select_agents
     else
       info "使用命令行指定的 Agent: ${SELECTED_AGENTS[*]}"
     fi
     if [[ ${#SELECTED_WORKFLOWS[@]} -eq 0 ]]; then
-      step3_select_workflows
+      step4_select_workflows
     else
       info "使用命令行指定的工作流: ${SELECTED_WORKFLOWS[*]}"
     fi
     if [[ -z "$MODE" ]]; then
-      step4_select_mode
+      step5_select_mode
     fi
     validate_mode
   else
@@ -693,11 +770,14 @@ main() {
 
   ensure_templates
 
+  generate_universal
+  generate_runtime_adapter
+
   case "$TOOL" in
     claude-code) generate_claude_code ;;
-    codex)       generate_universal; generate_codex ;;
-    opencode)    generate_universal; generate_opencode ;;
-    all)         generate_universal; generate_claude_code; generate_codex; generate_opencode ;;
+    codex)       generate_codex ;;
+    opencode)    generate_opencode ;;
+    all)         generate_claude_code; generate_codex; generate_opencode ;;
   esac
 
   generate_gitignore
@@ -705,7 +785,8 @@ main() {
   echo ""
   echo -e "${GREEN}初始化完成！${NC}"
   echo "  工具: $TOOL"
-  echo "  Agent: ${#SELECTED_AGENTS[@]} 个"
+  echo "  Runtime: $RUNTIME"
+  echo "  角色契约: ${#SELECTED_AGENTS[@]} 个"
   echo "  工作流: ${#SELECTED_WORKFLOWS[@]} 条"
   echo "  流程强度: $MODE"
   $DRY_RUN && echo -e "  ${YELLOW}模式: DRY-RUN（未写入文件）${NC}"

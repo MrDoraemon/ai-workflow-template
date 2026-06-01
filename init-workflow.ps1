@@ -1,6 +1,7 @@
 param(
   [string]$Tool = "",
   [string]$Mode = "",
+  [string]$Runtime = "",
   [string[]]$Agents = @(),
   [string[]]$Workflows = @(),
   [switch]$NonInteractive,
@@ -19,13 +20,16 @@ $TempTemplateDir = ""
 
 $AgentNames = @("analyst", "architect", "developer", "qa", "reviewer", "security", "devops")
 $AgentDescs = @("需求分析", "架构设计", "功能开发", "质量保证", "代码评审", "安全审计", "运维部署")
-$AgentCmdFiles = @("需求分析.md", "架构设计.md", "开发.md", "测试.md", "评审专家.md", "安全审计.md", "")
+$AgentCmdFiles = @("requirement.md", "architecture.md", "developer.md", "qa.md", "review.md", "security.md", "")
 
 $WorkflowNames = @("feature-flow", "bugfix-flow", "release-flow")
 $WorkflowDescs = @("新功能开发（含 4 阶段质量门控）", "Bug 修复", "发布部署")
 
 $ModeNames = @("lite", "standard", "strict")
 $ModeDescs = @("轻量模式：适合小改动、个人项目、快速原型", "标准模式：默认推荐，适合常规功能开发", "严格模式：适合生产级、多人协作、安全敏感项目")
+
+$RuntimeNames = @("native", "oh-my-claudecode", "oh-my-opencode")
+$RuntimeDescs = @("原生轻量适配：生成本项目自带 Agent 模板", "oh-my-claudecode 适配：只生成协议和模式映射，不重复生成 Agent", "oh-my-opencode 适配：只生成协议和模式映射，不重复生成 Agent")
 
 $SelectedAgents = @()
 $SelectedWorkflows = @()
@@ -40,7 +44,7 @@ function Stop-Init($Message) {
 }
 
 function Show-Help {
-  Write-Host "用法: .\init-workflow.ps1 [-Tool claude-code|codex|opencode|all] [-Mode lite|standard|strict] [-Agents a,b,c] [-Workflows a,b] [-NonInteractive] [-DryRun]"
+  Write-Host "用法: .\init-workflow.ps1 [-Tool claude-code|codex|opencode|all] [-Runtime native|oh-my-claudecode|oh-my-opencode] [-Mode lite|standard|strict] [-Agents a,b,c] [-Workflows a,b] [-NonInteractive] [-DryRun]"
 }
 
 function Test-InList($Value, $Items) {
@@ -214,9 +218,25 @@ function Normalize-SelectedWorkflows {
   $script:SelectedWorkflows = $normalized
 }
 
+function Validate-Runtime {
+  if (-not (Test-InList $Runtime $RuntimeNames)) {
+    Stop-Init "未知 runtime: $Runtime（可选: native|oh-my-claudecode|oh-my-opencode）"
+  }
+
+  switch ($Runtime) {
+    "native" { return }
+    "oh-my-claudecode" {
+      if ($Tool -ne "claude-code") { Stop-Init "runtime=oh-my-claudecode 仅适用于 -Tool claude-code" }
+    }
+    "oh-my-opencode" {
+      if ($Tool -ne "opencode") { Stop-Init "runtime=oh-my-opencode 仅适用于 -Tool opencode" }
+    }
+  }
+}
+
 function Select-ToolInteractive {
   Write-Host ""
-  Write-Host "Step 1/5: 选择 AI 编码工具" -ForegroundColor Cyan
+  Write-Host "Step 1/6: 选择 AI 编码工具" -ForegroundColor Cyan
   Write-Host "  1) Claude Code（完整多 Agent 编排 + 子 Agent 权限控制）"
   Write-Host "  2) Codex CLI（AGENTS.md 角色段落模式）"
   Write-Host "  3) OpenCode（.opencode/agents/ 子 Agent 模式）"
@@ -231,9 +251,25 @@ function Select-ToolInteractive {
   }
 }
 
+function Select-RuntimeInteractive {
+  Write-Host ""
+  Write-Host "Step 2/6: 选择 Runtime 适配层" -ForegroundColor Cyan
+  for ($i = 0; $i -lt $RuntimeNames.Count; $i++) {
+    Write-Host "  $($i + 1)) $($RuntimeNames[$i])  $($RuntimeDescs[$i])"
+  }
+  $choice = Read-Host ">"
+  switch ($choice) {
+    "1" { $script:Runtime = "native" }
+    "" { $script:Runtime = "native" }
+    "2" { $script:Runtime = "oh-my-claudecode" }
+    "3" { $script:Runtime = "oh-my-opencode" }
+    default { $script:Runtime = "native"; Write-Info "默认选择 native" }
+  }
+}
+
 function Select-AgentsInteractive {
   Write-Host ""
-  Write-Host "Step 2/5: 选择需要的 Agent（输入编号，逗号分隔）" -ForegroundColor Cyan
+  Write-Host "Step 3/6: 选择需要的角色契约（输入编号，逗号分隔）" -ForegroundColor Cyan
   for ($i = 0; $i -lt $AgentNames.Count; $i++) {
     Write-Host "  $($i + 1)) $($AgentNames[$i])  $($AgentDescs[$i])"
   }
@@ -253,7 +289,7 @@ function Select-AgentsInteractive {
 
 function Select-WorkflowsInteractive {
   Write-Host ""
-  Write-Host "Step 3/5: 选择工作流（输入编号，逗号分隔）" -ForegroundColor Cyan
+  Write-Host "Step 4/6: 选择工作流（输入编号，逗号分隔）" -ForegroundColor Cyan
   for ($i = 0; $i -lt $WorkflowNames.Count; $i++) {
     Write-Host "  $($i + 1)) $($WorkflowNames[$i])  $($WorkflowDescs[$i])"
   }
@@ -273,7 +309,7 @@ function Select-WorkflowsInteractive {
 
 function Select-ModeInteractive {
   Write-Host ""
-  Write-Host "Step 4/5: 选择流程强度" -ForegroundColor Cyan
+  Write-Host "Step 5/6: 选择流程强度" -ForegroundColor Cyan
   for ($i = 0; $i -lt $ModeNames.Count; $i++) {
     Write-Host "  $($i + 1)) $($ModeNames[$i])  $($ModeDescs[$i])"
   }
@@ -289,9 +325,10 @@ function Select-ModeInteractive {
 
 function Confirm-Interactive {
   Write-Host ""
-  Write-Host "Step 5/5: 确认" -ForegroundColor Cyan
+  Write-Host "Step 6/6: 确认" -ForegroundColor Cyan
   Write-Host "  工具: $Tool"
-  Write-Host "  Agent: $($SelectedAgents -join ' ')"
+  Write-Host "  Runtime: $Runtime"
+  Write-Host "  角色契约: $($SelectedAgents -join ' ')"
   Write-Host "  工作流: $($SelectedWorkflows -join ' ')"
   Write-Host "  流程强度: $Mode"
   if ($DryRun) { Write-Host "  模式: DRY-RUN（仅预览）" }
@@ -308,28 +345,19 @@ function Generate-Universal {
   $srcDir = Join-Path $ScriptRoot "templates/universal/ai-workflow"
 
   Invoke-SafeMkdir $aiWf
-  Invoke-SafeMkdir (Join-Path $aiWf "agents")
   Invoke-SafeMkdir (Join-Path $aiWf "workflows")
+  Invoke-SafeMkdir (Join-Path $aiWf "runtimes")
 
-  # protocol.md
-  $protocolSrc = Join-Path $srcDir "protocol.md"
-  $protocolDst = Join-Path $aiWf "protocol.md"
-  if (Test-Path $protocolSrc) {
-    if (Test-Path $protocolDst) {
-      Write-Ok ".ai-workflow/protocol.md 已存在，跳过"
-    } else {
-      Invoke-SafeCopy $protocolSrc $protocolDst
-      Write-Ok ".ai-workflow/protocol.md"
-    }
-  }
-
-  # agents
-  foreach ($agent in $SelectedAgents) {
-    $src = Join-Path $srcDir "agents/$agent-section.md"
-    $dst = Join-Path $aiWf "agents/$agent-section.md"
-    if ((Test-Path $src) -and -not (Test-Path $dst)) {
-      Invoke-SafeCopy $src $dst
-      Write-Ok ".ai-workflow/agents/$agent-section.md"
+  foreach ($doc in @("protocol.md", "roles.md", "gates.md", "runtime-map.md")) {
+    $src = Join-Path $srcDir $doc
+    $dst = Join-Path $aiWf $doc
+    if (Test-Path $src) {
+      if (Test-Path $dst) {
+        Write-Ok ".ai-workflow/$doc 已存在，跳过"
+      } else {
+        Invoke-SafeCopy $src $dst
+        Write-Ok ".ai-workflow/$doc"
+      }
     }
   }
 
@@ -374,8 +402,35 @@ function Generate-Universal {
   Write-Ok ".ai-workflow/ 通用层已生成"
 }
 
+function Generate-RuntimeAdapter {
+  if ($Runtime -eq "native") { return }
+
+  Write-Info "生成 Runtime Adapter: $Runtime"
+  $srcDir = Join-Path $ScriptRoot "templates/runtimes/$Runtime"
+  $dstDir = Join-Path $TargetDir ".ai-workflow/runtimes/$Runtime"
+
+  if (-not (Test-Path $srcDir)) {
+    Stop-Init "缺少 runtime adapter 模板: templates/runtimes/$Runtime"
+  }
+
+  Invoke-SafeMkdir $dstDir
+  foreach ($file in (Get-ChildItem -LiteralPath $srcDir -File -Recurse)) {
+    $rel = $file.FullName.Substring($srcDir.Length).TrimStart([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar)
+    $dst = Join-Path $dstDir $rel
+    $parent = Split-Path -Parent $dst
+    Invoke-SafeMkdir $parent
+    Invoke-SafeCopy $file.FullName $dst
+  }
+  Write-Ok "Runtime Adapter 已生成: .ai-workflow/runtimes/$Runtime"
+}
+
 function Generate-ClaudeCode {
   Write-Info "生成 Claude Code 适配层..."
+
+  if ($Runtime -eq "oh-my-claudecode") {
+    Write-Info "oh-my-claudecode runtime 使用外部编排能力，跳过本项目 Claude Agent/commands/hooks 生成"
+    return
+  }
 
   foreach ($path in @(
     ".claude/agents",
@@ -460,6 +515,11 @@ function Generate-Codex {
 
 function Generate-OpenCode {
   Write-Info "生成 OpenCode 适配层..."
+
+  if ($Runtime -eq "oh-my-opencode") {
+    Write-Info "oh-my-opencode runtime 使用外部编排能力，跳过本项目 OpenCode Agent/opencode.json 生成"
+    return
+  }
   Invoke-SafeMkdir (Join-Path $TargetDir ".opencode/agents")
 
   foreach ($agent in $SelectedAgents) {
@@ -556,6 +616,15 @@ if (-not (Test-InList $Tool @("claude-code", "codex", "opencode", "all"))) {
   Stop-Init "未知 AI 编码工具: $Tool（可选: claude-code|codex|opencode|all）"
 }
 
+if (-not $Runtime) {
+  if ($NonInteractive) {
+    $Runtime = "native"
+  } else {
+    Select-RuntimeInteractive
+  }
+}
+Validate-Runtime
+
 if ($NonInteractive) {
   if ($Agents.Count -gt 0) {
     $SelectedAgents = @($Agents | ForEach-Object { $_ -split "," } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
@@ -604,23 +673,18 @@ if (-not $NonInteractive) {
   Confirm-Interactive
 }
 
-if ($DryRun) { Write-Info "DRY-RUN 模式：仅预览，不写入文件" }
+  if ($DryRun) { Write-Info "DRY-RUN 模式：仅预览，不写入文件" }
 
 try {
   Ensure-Templates
+  Generate-Universal
+  Generate-RuntimeAdapter
 
   switch ($Tool) {
     "claude-code" { Generate-ClaudeCode }
-    "codex" {
-      Generate-Universal
-      Generate-Codex
-    }
-    "opencode" {
-      Generate-Universal
-      Generate-OpenCode
-    }
+    "codex" { Generate-Codex }
+    "opencode" { Generate-OpenCode }
     "all" {
-      Generate-Universal
       Generate-ClaudeCode
       Generate-Codex
       Generate-OpenCode
@@ -631,7 +695,8 @@ try {
   Write-Host ""
   Write-Host "初始化完成！" -ForegroundColor Green
   Write-Host "  工具: $Tool"
-  Write-Host "  Agent: $($SelectedAgents.Count) 个"
+  Write-Host "  Runtime: $Runtime"
+  Write-Host "  角色契约: $($SelectedAgents.Count) 个"
   Write-Host "  工作流: $($SelectedWorkflows.Count) 条"
   Write-Host "  流程强度: $Mode"
   if ($DryRun) { Write-Host "  模式: DRY-RUN（未写入文件）" -ForegroundColor Yellow }

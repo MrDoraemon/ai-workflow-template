@@ -1,6 +1,11 @@
 # AI Workflow Protocol / 多 Agent 协作协议
 
-本文件定义项目的多 Agent 协作工作流，被 Claude Code / Codex CLI / OpenCode 等工具识别。
+本文件定义项目的 AI-Native SDLC 协议，被 Claude Code / Codex CLI / OpenCode 及外部 runtime adapter 识别。
+
+相关协议文件：
+- `roles.md`：抽象角色契约，不绑定具体 agent 实现
+- `gates.md`：RCG / TDR / ARCH / PLG / CTG 门禁
+- `runtime-map.md`：native / oh-my-claudecode / oh-my-opencode 映射原则
 
 ## 可用角色
 

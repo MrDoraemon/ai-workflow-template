@@ -1,16 +1,17 @@
 # AI-Native Workflow Template
 
-一套可复用的多 Agent 协作开发流水线模板，支持一键部署到新项目。
+一套可复用的 AI-Native SDLC 流程协议模板，支持一键部署到新项目，并可适配 native / oh-my-claudecode / oh-my-opencode 等执行 runtime。
 
 ## 特性
 
-- **7 个专业 Agent 角色**：需求分析师、架构师、开发工程师、测试工程师、代码评审员、安全审计员、运维工程师
+- **7 个抽象角色契约**：需求分析、架构设计、开发实现、质量验证、代码评审、安全审计、运维部署
 - **3 条工作流**：新功能开发（含 4 阶段质量门控）、Bug 修复、发布部署
 - **4 阶段质量门控 + RCG 需求澄清 + TDR 方案选择**：需求澄清(RCG) → 技术决策评审(TDR) → 设计预检(DG) → 编码前预检(CG) → 编码合规(PLG) → 交付预检(CTG)
 - **3 档流程强度**：lite / standard / strict，可按项目默认选择，也可在单次任务中临时覆盖
 - **跨系统初始化**：支持 macOS / Linux / Git Bash 的 Bash 脚本，也支持 Windows PowerShell
 - **跨工具兼容**：支持 Claude Code、Codex CLI、OpenCode
-- **通用型设计**：不绑定技术栈，Agent 自动从项目 CLAUDE.md 获取上下文
+- **Runtime Adapter**：支持 native 原生轻量模板，也可接入 oh-my-claudecode / oh-my-opencode
+- **通用型设计**：不绑定技术栈，核心协议安装到 `.ai-workflow/`
 
 ## 快速开始
 
@@ -58,9 +59,10 @@ $env:AI_WORKFLOW_TEMPLATE_REF = "main"
 
 交互式向导会引导你选择：
 1. AI 编码工具（Claude Code / Codex CLI / OpenCode / 全部）
-2. 需要的 Agent 角色
-3. 需要的工作流
-4. 流程强度（lite / standard / strict）
+2. Runtime 适配层（native / oh-my-claudecode / oh-my-opencode）
+3. 需要的角色契约
+4. 需要的工作流
+5. 流程强度（lite / standard / strict）
 
 完成后，项目目录下会生成对应的配置文件。
 
@@ -75,9 +77,17 @@ powershell -ExecutionPolicy Bypass -File .\init-workflow.ps1 -Tool claude-code -
 ./init-workflow.sh --tool all --mode standard --non-interactive
 powershell -ExecutionPolicy Bypass -File .\init-workflow.ps1 -Tool all -Mode standard -NonInteractive
 
-# 指定 Agent 和工作流
+# 指定角色契约和工作流
 ./init-workflow.sh --tool opencode --mode lite --agents analyst,architect,developer --workflows feature-flow
 powershell -ExecutionPolicy Bypass -File .\init-workflow.ps1 -Tool opencode -Mode lite -Agents analyst,architect,developer -Workflows feature-flow
+
+# 接入 oh-my-claudecode（不生成本项目自带 Claude Agent）
+./init-workflow.sh --tool claude-code --runtime oh-my-claudecode --mode standard --non-interactive
+powershell -ExecutionPolicy Bypass -File .\init-workflow.ps1 -Tool claude-code -Runtime oh-my-claudecode -Mode standard -NonInteractive
+
+# 接入 oh-my-opencode（不生成本项目自带 OpenCode Agent）
+./init-workflow.sh --tool opencode --runtime oh-my-opencode --mode standard --non-interactive
+powershell -ExecutionPolicy Bypass -File .\init-workflow.ps1 -Tool opencode -Runtime oh-my-opencode -Mode standard -NonInteractive
 
 # 查看帮助
 ./init-workflow.sh --help
@@ -96,15 +106,19 @@ powershell -ExecutionPolicy Bypass -File .\init-workflow.ps1 -Help
 
 ## 工具适配说明
 
-| 工具 | 生成内容 | 说明 |
-|------|---------|------|
-| Claude Code | `.claude/agents/` + `workflows/` + `commands/` + `.claude/CLAUDE.md` + `.claude/hooks/` | 完整适配，含子 Agent 工具权限、危险命令 deny 和 TDR Hook 硬约束 |
-| Codex CLI | 角色段落写入 `AGENTS.md`（仅脚本创建时） | 零侵入：已有 AGENTS.md 不修改 |
-| OpenCode | `.opencode/agents/` + `opencode.json` | 使用 Markdown agent + `permission` 字段控制读写与 Bash |
+| Tool / Runtime | 生成内容 | 说明 |
+|----------------|---------|------|
+| native + Claude Code | `.ai-workflow/` + `.claude/agents/` + `workflows/` + `commands/` + `.claude/hooks/` | 原生轻量适配，含本项目自带 Agent 和 TDR Hook |
+| native + Codex CLI | `.ai-workflow/` + `AGENTS.md`（仅脚本创建时） | 零侵入：已有 AGENTS.md 不修改 |
+| native + OpenCode | `.ai-workflow/` + `.opencode/agents/` + `opencode.json` | 原生 OpenCode agent 适配 |
+| oh-my-claudecode | `.ai-workflow/` + `.ai-workflow/runtimes/oh-my-claudecode/` | 不生成重复 Claude Agent，由 oh-my-claudecode 接管编排 |
+| oh-my-opencode | `.ai-workflow/` + `.ai-workflow/runtimes/oh-my-opencode/` | 不生成重复 OpenCode Agent，由 oh-my-opencode 接管编排 |
 
-权限控制采用”工具层限制 + 提示词约束”双层设计：`reviewer`、`security` 在 Claude Code 和 OpenCode 中禁用写入与 Bash；`developer`、`qa`、`devops` 才保留必要的编辑或执行权限。RCG（需求澄清）在所有工具中通过 analyst 强制输出 RCU 实现；TDR（技术决策评审）在 Claude Code 中通过 PreToolUse Hook 实现硬约束：未完成 TDR 确认时 Hook 自动阻断 architect 生成 ARCH 文档的调用。Codex CLI 当前以 `AGENTS.md` 约束为主，不能提供同等粒度的子 Agent 工具隔离和 Hook 硬约束。所有工具通用协议统一安装在 `.ai-workflow/` 目录，产出物存档到 `.ai-workflow/artifacts/`，卸载执行 `./.ai-workflow/uninstall.sh`。
+本项目核心只定义 SDLC 协议、门禁和产物契约。native runtime 会生成本项目自带 Agent；oh-my-claudecode / oh-my-opencode runtime 则只生成适配说明，由外部 runtime 的 Team / Autopilot / Ultrawork / Ralph / Sisyphus 等能力负责执行。
 
-## Agent 角色
+权限控制采用”工具层限制 + 提示词约束”双层设计。RCG（需求澄清）在所有工具中通过 analyst/需求角色强制输出 RCU 实现；TDR（技术决策评审）在 native Claude Code 中通过 PreToolUse Hook 实现硬约束。所有工具通用协议统一安装在 `.ai-workflow/` 目录，产出物存档到 `.ai-workflow/artifacts/`，卸载执行 `./.ai-workflow/uninstall.sh`。
+
+## 角色契约
 
 | 角色 | 职责 | 权限 |
 |------|------|------|
@@ -138,16 +152,17 @@ architect → PLG 编码合规审查
 
 ## 初始化后要做的事
 
-1. 编辑 `.claude/CLAUDE.md`（Claude Code 模式）或 `AGENTS.md`（Codex/OpenCode 模式），填写项目概述、技术栈、目录结构
-2. Agent 启动时会自动读取项目配置获取上下文
-3. 使用快捷命令（Claude Code 模式）开始工作：
+1. 阅读 `.ai-workflow/protocol.md`、`.ai-workflow/roles.md`、`.ai-workflow/gates.md`
+2. 编辑 `.claude/CLAUDE.md`（native Claude Code）或 `AGENTS.md`（Codex/OpenCode），填写项目概述、技术栈、目录结构
+3. 如果选择 oh-my runtime，阅读 `.ai-workflow/runtimes/<runtime>/README.md`
+4. 使用快捷命令（native Claude Code 模式）开始工作：
    - `/requirement` — 需求分析，输出 REQ 文档
    - `/architecture` — 架构设计（含 TDR 方案选择），输出 ARCH 文档
    - `/developer` — 编码实现
    - `/qa` — 测试编写与执行
    - `/review` — 代码评审
    - `/security` — 安全审计
-4. 卸载工作流：`./.ai-workflow/uninstall.sh`
+5. 卸载工作流：`./.ai-workflow/uninstall.sh`
 
 ## 目录结构
 
@@ -160,8 +175,10 @@ ai-workflow-template/
 │   │   ├── AGENTS.md             # AGENTS.md 模板（仅新建时使用）
 │   │   └── ai-workflow/          # 零侵入通用工作流
 │   │       ├── protocol.md       # 通用协议
+│   │       ├── roles.md          # 抽象角色契约
+│   │       ├── gates.md          # 门禁协议
+│   │       ├── runtime-map.md    # runtime 映射
 │   │       ├── uninstall.sh      # 卸载脚本
-│   │       ├── agents/           # 7 个 Agent 段落
 │   │       └── workflows/        # 3 条工作流
 │   ├── claude-code/              # Claude Code 适配
 │   │   ├── agents/               # 7 个 Agent 定义
@@ -175,6 +192,9 @@ ai-workflow-template/
 │   │   └── agents-md-sections/   # 7 个角色段落
 │   └── opencode/                 # OpenCode 适配
 │       └── agents/               # 7 个 Agent 文件
+│   └── runtimes/                 # 外部 runtime adapter
+│       ├── oh-my-claudecode/
+│       └── oh-my-opencode/
 └── README.md
 ```
 
