@@ -466,13 +466,15 @@ generate_universal() {
   done
   ok "产出物存档目录已创建（.ai-workflow/artifacts/）"
 
-  # AGENTS.md (Codex): only create if not already exists
-  if [[ ! -f "$TARGET_DIR/AGENTS.md" ]]; then
-    safe_cp "$SCRIPT_DIR/templates/universal/AGENTS.md" "$TARGET_DIR/AGENTS.md"
-    AGENTS_MD_CREATED=true
-    ok "AGENTS.md 已生成（从通用模板）"
-  else
-    warn "AGENTS.md 已存在，不修改。通用协议见 .ai-workflow/protocol.md"
+  # AGENTS.md (Codex): only create when codex or all tool is selected
+  if [[ "$TOOL" == "codex" || "$TOOL" == "all" ]]; then
+    if [[ ! -f "$TARGET_DIR/AGENTS.md" ]]; then
+      safe_cp "$SCRIPT_DIR/templates/universal/AGENTS.md" "$TARGET_DIR/AGENTS.md"
+      AGENTS_MD_CREATED=true
+      ok "AGENTS.md 已生成（从通用模板）"
+    else
+      warn "AGENTS.md 已存在，不修改。通用协议见 .ai-workflow/protocol.md"
+    fi
   fi
 
   ok ".ai-workflow/ 通用层已生成"
