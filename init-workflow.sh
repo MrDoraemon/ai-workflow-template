@@ -28,9 +28,9 @@ SELECTED_WORKFLOWS=()
 AGENTS_MD_CREATED=false
 
 # ─── Agent 注册表（平行索引数组，兼容 bash 3.2）───
-AGENT_NAMES=(analyst architect developer qa reviewer security devops)
-AGENT_DESCS=("需求分析" "架构设计" "功能开发" "质量保证" "代码评审" "安全审计" "运维部署")
-AGENT_CMD_FILES=("requirement.md" "architecture.md" "developer.md" "qa.md" "review.md" "security.md" "")
+AGENT_NAMES=(tangseng wukong bajie nezha erlang lijing bailongma)
+AGENT_DESCS=("唐僧(需求分析)" "悟空(架构设计)" "八戒(功能开发)" "哪吒(质量保证)" "二郎神(代码评审)" "李靖(安全审计)" "白龙马(运维部署)")
+AGENT_CMD_FILES=("tangseng.md" "wukong.md" "bajie.md" "nezha.md" "erlang.md" "lijing.md" "")
 
 # ─── 工作流注册表 ───
 WORKFLOW_NAMES=(feature-flow bugfix-flow release-flow)
@@ -266,33 +266,33 @@ safe_append_mode_protocol() {
     printf '### 模式定义\n\n'
     printf '| 模式 | 适用场景 | 默认流程 |\n'
     printf '|------|----------|----------|\n'
-    printf '| lite | 小改动、快速原型、低风险修复 | developer 实现 → 自测/构建 → 可选 reviewer |\n'
-    printf '| standard | 常规功能开发 | analyst → architect → developer → PLG → CTG → qa → reviewer |\n'
+    printf '| lite | 小改动、快速原型、低风险修复 | bajie 实现 → 自测/构建 → 可选 erlang |\n'
+    printf '| standard | 常规功能开发 | tangseng → wukong → bajie → PLG → CTG → nezha → erlang |\n'
     printf '| strict | 生产级、安全敏感、多人协作 | standard + 强制 security + 更严格人工门控 + 发布检查 |\n\n'
     printf '### 当前模式执行规则\n\n'
     case "$MODE" in
       lite)
         printf '%s\n' '- 默认跳过独立 REQ/ARCH 产物，除非需求不清、影响范围跨模块或用户明确要求。'
-        printf '%s\n' '- developer 必须完成必要上下文确认、实现、自测和验证命令。'
-        printf '%s\n' '- reviewer、qa、security 按风险触发，不强制每次调用。'
+        printf '%s\n' '- bajie 必须完成必要上下文确认、实现、自测和验证命令。'
+        printf '%s\n' '- erlang、nezha、lijing 按风险触发，不强制每次调用。'
         printf '%s\n' '- CTG 只检查本次变更相关的运行、构建、测试、依赖和配置项。'
         printf '%s\n' '- TDR（技术决策评审）仍需执行，但用户确认时可快速通过。'
-        printf '%s\n' '- RCG（需求澄清）仍需执行，analyst 输出精简版 RCU，用户可快速通过。'
+        printf '%s\n' '- RCG（需求澄清）仍需执行，tangseng 输出精简版 RCU，用户可快速通过。'
         ;;
       standard)
-        printf '%s\n' '- 默认执行完整常规流水线：analyst → architect → developer → PLG → CTG → qa → reviewer。'
+        printf '%s\n' '- 默认执行完整常规流水线：tangseng → wukong → bajie → PLG → CTG → nezha → erlang。'
         printf '%s\n' '- DG、CG、PLG、CTG 按模板定义执行；阻断项必须修复。'
         printf '%s\n' '- security 在安全敏感、认证授权、依赖、配置、数据处理相关变更时触发。'
-        printf '%s\n' '- architect 必须在 ARCH 文档前输出 TDR（技术决策评审），用户确认选择后再进入详细设计。'
-        printf '%s\n' '- analyst 必须在 REQ 文档前输出 RCU（需求理解确认），用户确认理解后再生成 REQ。'
+        printf '%s\n' '- wukong 必须在 ARCH 文档前输出 TDR（技术决策评审），用户确认选择后再进入详细设计。'
+        printf '%s\n' '- tangseng 必须在 REQ 文档前输出 RCU（需求理解确认），用户确认理解后再生成 REQ。'
         ;;
       strict)
-        printf '%s\n' '- analyst、architect、developer、qa、reviewer 必须参与；security 默认强制参与。'
+        printf '%s\n' '- tangseng、wukong、bajie、nezha、erlang 必须参与；lijing 默认强制参与。'
         printf '%s\n' '- REQ、ARCH、测试报告、评审报告和安全报告必须存档并更新索引。'
         printf '%s\n' '- DG、CG、PLG、CTG 必须 100% 执行；任何阻断项不得带病推进。'
         printf '%s\n' '- 需求确认、架构确认、交付终审和发布/部署前确认均作为人工门控点。'
         printf '%s\n' '- TDR（技术决策评审）为强制步骤且必须存档；用户必须明确确认每个决策项。'
-        printf '%s\n' '- RCG（需求澄清）为强制步骤；analyst 必须输出完整 RCU 并逐项获得用户确认后才能生成 REQ。'
+        printf '%s\n' '- RCG（需求澄清）为强制步骤；tangseng 必须输出完整 RCU 并逐项获得用户确认后才能生成 REQ。'
         ;;
     esac
     printf '<!-- AI-WORKFLOW-MODE:end -->\n'
@@ -358,7 +358,7 @@ step3_select_agents() {
   done
 
   if [[ ${#SELECTED_AGENTS[@]} -eq 0 ]]; then
-    SELECTED_AGENTS=(analyst architect developer)
+    SELECTED_AGENTS=(tangseng wukong bajie)
     info "默认选择核心 Agent: ${SELECTED_AGENTS[*]}"
   fi
 }

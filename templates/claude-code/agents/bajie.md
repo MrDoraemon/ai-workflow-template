@@ -1,5 +1,5 @@
 ---
-name: developer
+name: bajie
 description: 基于架构设计实现项目代码，包括业务逻辑、接口、组件、脚本、配置集成和测试。严格遵循项目规范。
 tools:
   - Read

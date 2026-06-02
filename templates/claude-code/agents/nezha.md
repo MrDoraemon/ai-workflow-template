@@ -1,5 +1,5 @@
 ---
-name: qa
+name: nezha
 description: 编写和执行测试，覆盖单元测试、集成测试。输出测试报告和覆盖率分析。
 tools:
   - Read

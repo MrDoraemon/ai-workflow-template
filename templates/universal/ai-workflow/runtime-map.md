@@ -24,7 +24,7 @@
 | 编码实现 | 小任务 Autopilot，大任务 Ultrawork |
 | 多模块并行 | Team 或 Ultrawork |
 | 难修 bug / 最终验证 | Ralph |
-| PLG / CTG / Review | Ralph 或 Autopilot + reviewer |
+| PLG / CTG / Review | Ralph 或 Autopilot + erlang |
 
 原则：Ultrawork / Team 只能在 ARCH 确认后进入实现阶段。
 
@@ -36,10 +36,10 @@
 
 | SDLC 阶段 | 推荐执行方式 |
 |-----------|--------------|
-| RCG / REQ | read-only analyst / planning agent |
-| TDR / ARCH | oracle / architect 类只读 agent |
+| RCG / REQ | read-only tangseng / planning agent |
+| TDR / ARCH | oracle / wukong 类只读 agent |
 | 编码实现 | Sisyphus / worker |
 | 多模块并行 | conductor 分派 worker |
-| Review / Security | oracle / reviewer / security 类只读 agent |
+| Review / Security | oracle / erlang / lijing 类只读 agent |
 
 原则：Sisyphus 等强编排只能在 RCU、REQ、TDR、ARCH 完成后进入实现阶段。

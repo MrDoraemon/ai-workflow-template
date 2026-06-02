@@ -24,7 +24,7 @@ QA / Review / Security
 
 ## RCG
 
-- feature-flow 中 analyst 必须首先输出 RCU。
+- feature-flow 中 tangseng 必须首先输出 RCU。
 - 用户确认 RCU 前，不得生成 REQ。
 - lite 模式可以输出精简 RCU，但不可由 AI 自行跳过。
 
@@ -36,7 +36,7 @@ QA / Review / Security
 
 ## TDR
 
-- 架构设计 Phase 2 中 architect 必须首先输出 TDR。
+- 架构设计 Phase 2 中 wukong 必须首先输出 TDR。
 - 用户确认 TDR 前，不得生成 ARCH。
 - lite 模式可快速接受推荐，但不可由 AI 自行跳过。
 
@@ -53,8 +53,8 @@ QA / Review / Security
 
 ## CG / PLG / CTG
 
-- CG：developer 编码前必须完成上下文预检。
-- PLG：architect 对照 ARCH 契约检查实现，发现偏差必须修复。
+- CG：bajie 编码前必须完成上下文预检。
+- PLG：wukong 对照 ARCH 契约检查实现，发现偏差必须修复。
 - CTG：主会话执行交付预检，阻断项未清零不得交付。
 
 ## Runtime 边界

@@ -1,5 +1,5 @@
 ---
-name: devops
+name: bailongma
 description: 负责 CI/CD 流水线、容器化、部署配置、环境管理。
 tools:
   - Read

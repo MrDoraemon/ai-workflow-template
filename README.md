@@ -78,8 +78,8 @@ powershell -ExecutionPolicy Bypass -File .\init-workflow.ps1 -Tool claude-code -
 powershell -ExecutionPolicy Bypass -File .\init-workflow.ps1 -Tool all -Mode standard -NonInteractive
 
 # 指定角色契约和工作流
-./init-workflow.sh --tool opencode --mode lite --agents analyst,architect,developer --workflows feature-flow
-powershell -ExecutionPolicy Bypass -File .\init-workflow.ps1 -Tool opencode -Mode lite -Agents analyst,architect,developer -Workflows feature-flow
+./init-workflow.sh --tool opencode --mode lite --agents tangseng,architect,developer --workflows feature-flow
+powershell -ExecutionPolicy Bypass -File .\init-workflow.ps1 -Tool opencode -Mode lite -Agents tangseng,architect,developer -Workflows feature-flow
 
 # 接入 oh-my-claudecode（不生成本项目自带 Claude Agent）
 ./init-workflow.sh --tool claude-code --runtime oh-my-claudecode --mode standard --non-interactive
@@ -98,9 +98,9 @@ powershell -ExecutionPolicy Bypass -File .\init-workflow.ps1 -Help
 
 | 模式 | 适用场景 | 默认流程 |
 |------|----------|----------|
-| lite | 小改动、快速原型、低风险修复 | developer 实现 → 自测/构建 → 可选 reviewer（RCG/TDR 可快速通过） |
-| standard | 常规功能开发（默认推荐） | analyst(+RCG 需求澄清) → architect(+TDR 方案选择) → developer → PLG → CTG → qa → reviewer |
-| strict | 生产级、安全敏感、多人协作 | standard + 强制 security + RCG/TDR 必须存档 + 更严格人工门控 + 发布检查 |
+| lite | 小改动、快速原型、低风险修复 | bajie 实现 → 自测/构建 → 可选 erlang（RCG/TDR 可快速通过） |
+| standard | 常规功能开发（默认推荐） | tangseng(+RCG 需求澄清) → wukong(+TDR 方案选择) → bajie → PLG → CTG → nezha → erlang |
+| strict | 生产级、安全敏感、多人协作 | standard + 强制 lijing + RCG/TDR 必须存档 + 更严格人工门控 + 发布检查 |
 
 初始化时选择的模式会写入 `.ai-workflow/` 配置。单次任务可临时覆盖，例如”本次用 lite 模式修复”或”这个支付功能走 strict 模式”。
 
@@ -116,38 +116,38 @@ powershell -ExecutionPolicy Bypass -File .\init-workflow.ps1 -Help
 
 本项目核心只定义 SDLC 协议、门禁和产物契约。native runtime 会生成本项目自带 Agent；oh-my-claudecode / oh-my-opencode runtime 则只生成适配说明，由外部 runtime 的 Team / Autopilot / Ultrawork / Ralph / Sisyphus 等能力负责执行。
 
-权限控制采用”工具层限制 + 提示词约束”双层设计。RCG（需求澄清）在所有工具中通过 analyst/需求角色强制输出 RCU 实现；TDR（技术决策评审）在 native Claude Code 中通过 PreToolUse Hook 实现硬约束。所有工具通用协议统一安装在 `.ai-workflow/` 目录，产出物存档到 `.ai-workflow/artifacts/`，卸载执行 `./.ai-workflow/uninstall.sh`。
+权限控制采用”工具层限制 + 提示词约束”双层设计。RCG（需求澄清）在所有工具中通过 tangseng/需求角色强制输出 RCU 实现；TDR（技术决策评审）在 native Claude Code 中通过 PreToolUse Hook 实现硬约束。所有工具通用协议统一安装在 `.ai-workflow/` 目录，产出物存档到 `.ai-workflow/artifacts/`，卸载执行 `./.ai-workflow/uninstall.sh`。
 
 ## 角色契约
 
 | 角色 | 职责 | 权限 |
 |------|------|------|
-| analyst | 需求分析，输出 REQ 文档 | 只读 |
-| architect | 架构设计 | 只读 |
-| developer | 通用功能实现 | 读写任务范围内代码 |
-| qa | 测试编写与执行 | 读写测试 |
-| reviewer | 代码评审 | 只读 |
-| security | 安全审计 | 只读 |
-| devops | CI/CD 和部署 | 读写配置 |
+| tangseng | 需求分析，输出 REQ 文档 | 只读 |
+| wukong | 架构设计 | 只读 |
+| bajie | 通用功能实现 | 读写任务范围内代码 |
+| nezha | 测试编写与执行 | 读写测试 |
+| erlang | 代码评审 | 只读 |
+| lijing | 安全审计 | 只读 |
+| bailongma | CI/CD 和部署 | 读写配置 |
 
 ## 新功能开发流水线
 
 ```
 用户需求
   ↓
-analyst → RCU（需求理解确认 + 用户确认）
+tangseng → RCU（需求理解确认 + 用户确认）
   ↓
-analyst → REQ 文档（需求分析）
+tangseng → REQ 文档（需求分析）
   ↓
-architect → TDR 文档（技术决策评审 + 用户选择方案）
+wukong → TDR 文档（技术决策评审 + 用户选择方案）
   ↓
-architect → ARCH 文档（架构设计 + DG 自检）
+wukong → ARCH 文档（架构设计 + DG 自检）
   ↓
-developer（编码实现 + CG 预检；可按模块并行调度）
+bajie（编码实现 + CG 预检；可按模块并行调度）
   ↓
-architect → PLG 编码合规审查
+wukong → PLG 编码合规审查
   ↓
-交付预检(CTG) → qa(测试) → reviewer(评审)
+交付预检(CTG) → nezha(测试) → erlang(评审)
 ```
 
 ## 卸载
@@ -196,12 +196,12 @@ bash .\.ai-workflow\uninstall.sh
 2. 编辑 `.claude/CLAUDE.md`（native Claude Code）或 `AGENTS.md`（Codex/OpenCode），填写项目概述、技术栈、目录结构
 3. 如果选择 oh-my runtime，阅读 `.ai-workflow/runtimes/<runtime>/README.md`
 4. 使用快捷命令（native Claude Code 模式）开始工作：
-   - `/requirement` — 需求分析，输出 REQ 文档
-   - `/architecture` — 架构设计（含 TDR 方案选择），输出 ARCH 文档
-   - `/developer` — 编码实现
-   - `/qa` — 测试编写与执行
-   - `/review` — 代码评审
-   - `/security` — 安全审计
+   - `/tangseng` — 需求分析，输出 REQ 文档
+   - `/wukong` — 架构设计（含 TDR 方案选择），输出 ARCH 文档
+   - `/bajie` — 编码实现
+   - `/nezha` — 测试编写与执行
+   - `/erlang` — 代码评审
+   - `/lijing` — 安全审计
 5. 卸载工作流：`./.ai-workflow/uninstall.sh`
 
 ## 目录结构

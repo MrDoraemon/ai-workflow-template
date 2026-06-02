@@ -1,6 +1,6 @@
 #!/bin/bash
 # tdr-gate.sh — PreToolUse Hook
-# Enforces TDR (Technical Decision Review) completion before architect ARCH-phase calls.
+# Enforces TDR (Technical Decision Review) completion before wukong ARCH-phase calls.
 # Installed to .claude/hooks/ by init-workflow when Claude Code mode is selected.
 
 set -euo pipefail
@@ -18,8 +18,8 @@ PROMPT=$(echo "$INPUT" | jq -r '.tool_input.prompt // ""')
 DESCRIPTION=$(echo "$INPUT" | jq -r '.tool_input.description // ""')
 FULL_TEXT="$PROMPT $DESCRIPTION"
 
-# Check if this is an architect-related call
-if ! echo "$FULL_TEXT" | grep -qi "architect\|架构\|ARCH"; then
+# Check if this is a wukong-related call
+if ! echo "$FULL_TEXT" | grep -qi "\bwukong\b\|悟空\|\bWK\b"; then
   exit 0
 fi
 
@@ -40,7 +40,7 @@ if [ "$IS_TDR_PHASE" = true ] || [ "$IS_COMPLIANCE" = true ]; then
   exit 0
 fi
 
-# Remaining architect calls are treated as ARCH-phase — check TDR gate
+# Remaining wukong calls are treated as ARCH-phase — check TDR gate
 
 CWD=$(echo "$INPUT" | jq -r '.cwd // empty')
 if [ -z "$CWD" ]; then
