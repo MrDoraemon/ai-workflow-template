@@ -150,6 +150,46 @@ architect → PLG 编码合规审查
 交付预检(CTG) → qa(测试) → reviewer(评审)
 ```
 
+## 卸载
+
+### 卸载前须知
+
+卸载脚本会删除所有 AI Workflow 相关的配置文件，包括：
+- `.ai-workflow/` — 通用协议、角色契约、门禁协议、工作流定义
+- `.claude/agents/` — Claude Code Agent 定义
+- `.claude/workflows/` — Claude Code 工作流
+- `.claude/commands/` — 快捷命令
+- `.claude/hooks/` — TDR 门禁 Hook
+- `.claude/CLAUDE.md` — 协作协议（仅 AI Workflow 添加的内容）
+- `.claude/settings.local.json` — 权限配置
+- `.opencode/agents/` — OpenCode Agent 定义
+- `.opencode.json` — OpenCode 配置
+- `.ai-workflow/artifacts/` — 产出物存档（**重要数据，建议备份**）
+
+### 备份产出物
+
+如果项目中有重要的需求文档（REQ）、架构设计（ARCH）、测试计划等，建议在卸载前备份：
+
+```bash
+# macOS / Linux / Git Bash
+cp -r .ai-workflow/artifacts ~/ai-workflow-artifacts-backup
+
+# Windows PowerShell
+Copy-Item -Recurse .ai-workflow\artifacts $HOME\ai-workflow-artifacts-backup
+```
+
+### 执行卸载
+
+```bash
+# macOS / Linux / Git Bash
+./.ai-workflow/uninstall.sh
+
+# Windows PowerShell
+bash .\.ai-workflow\uninstall.sh
+# 或者在 Git Bash 中执行
+./.ai-workflow/uninstall.sh
+```
+
 ## 初始化后要做的事
 
 1. 阅读 `.ai-workflow/protocol.md`、`.ai-workflow/roles.md`、`.ai-workflow/gates.md`
