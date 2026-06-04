@@ -261,7 +261,7 @@ safe_append_mode_protocol() {
     printf '\n'
     printf '<!-- AI-WORKFLOW-MODE:start -->\n'
     printf '## 流程强度模式\n\n'
-    printf '当前项目默认模式：`%s`（%s）。\n\n' "$MODE" "$(mode_desc)"
+    printf "当前项目默认模式：\`%s\`（%s）。\n\n" "$MODE" "$(mode_desc)"
     printf '用户在单次任务中可以临时覆盖默认模式，例如“本次用 lite 模式修复”或“这个功能走 strict 模式”。\n\n'
     printf '### 模式定义\n\n'
     printf '| 模式 | 适用场景 | 默认流程 |\n'
@@ -492,7 +492,7 @@ generate_runtime_adapter() {
 
   local file rel dst parent
   while IFS= read -r file; do
-    rel="${file#$src_dir/}"
+    rel="${file#"$src_dir"/}"
     dst="$dst_dir/$rel"
     parent="$(dirname "$dst")"
     safe_mkdir "$parent"
@@ -531,7 +531,8 @@ generate_claude_code() {
   # 按所选 Agent 过滤命令
   local copied_cmds=()
   for agent in "${SELECTED_AGENTS[@]}"; do
-    local cmd_idx=$(_agent_idx "$agent")
+    local cmd_idx
+    cmd_idx=$(_agent_idx "$agent")
     local cmd="${AGENT_CMD_FILES[$cmd_idx]:-}"
     if [[ -n "$cmd" && -f "$SCRIPT_DIR/templates/claude-code/commands/$cmd" ]]; then
       local already=false

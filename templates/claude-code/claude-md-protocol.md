@@ -57,7 +57,7 @@
 | Agent | 文件 | 权限 | 职责 |
 |---|---|---|---|
 | tangseng | `.claude/agents/tangseng.md` | 只读 | 需求分析，输出 REQ 文档 |
-| wukong | `.claude/agents/wukong.md` | 只读 | 架构设计 |
+| wukong | `.claude/agents/wukong.md` | 只读 | 技术决策评审(TDR)、架构设计(ARCH)、编码合规审查(PLG) |
 | bajie | `.claude/agents/bajie.md` | 读写任务范围内代码 | 通用功能实现 |
 | nezha | `.claude/agents/nezha.md` | 读写测试 | 测试编写与执行 |
 | erlang | `.claude/agents/erlang.md` | 只读 | 代码评审 |
@@ -68,7 +68,7 @@
 
 ### 流水线触发规则
 
-- **新功能需求** → tangseng(+RCG 需求澄清) → wukong(+TDR 方案选择+设计自检 DG) → bajie(+上下文预检 CG，可按模块并行调度) → wukong(+编码合规预检 PLG) → 交付预检(CTG) → nezha → erlang
+- **新功能需求** → tangseng(+RCG 需求澄清) → wukong(+TDR 方案选择+设计自检 DG) → bajie(+上下文预检 CG，可按模块并行调度) → wukong(+编码合规审查 PLG) → 交付预检(CTG) → nezha → erlang
 - **Bug 修复** → 定位问题 → bajie → nezha → erlang
 - **代码评审** → erlang（可选 + lijing）
 - **部署** → nezha → lijing → bailongma
@@ -85,11 +85,11 @@
   - `.ai-workflow/artifacts/security/` — SEC 安全审计报告
 - **索引更新**：每次存档后更新 `.ai-workflow/artifacts/index.md`
 
-### 预检机制（四阶段质量门控）
+### 质量门控（四阶段）
 
 | 阶段 | 名称 | 执行者 | 门禁强度 | 规则 |
 |------|------|--------|---------|------|
 | 1 | 设计预检 (DG-01~09) | wukong 自检 | **强门禁** | 100% PASS → 才能编码 |
-| 2 | 编码前上下文预检 (CG-01~06) | bajie 自检 | **强门禁** | 100% PASS → 才能编码 |
-| 3 | 编码合规预检 (PLG-01~07) | wukong 独立审查 | **强门禁** | 发现即修复，不可带病推进 |
+| 2 | 编码前上下文预检 (CG-01~07) | bajie 自检 | **强门禁** | 100% PASS → 才能编码 |
+| 3 | 编码合规审查 (PLG-01~07) | wukong 独立审查 | **强门禁** | 发现即修复，不可带病推进 |
 | 4 | 交付预检 (CTG-01~05) | 主会话 | **分级门控** | 阻断项必修 + 风险清单 + 人工终审 |

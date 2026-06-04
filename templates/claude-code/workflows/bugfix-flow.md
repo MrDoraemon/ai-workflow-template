@@ -34,6 +34,10 @@ Agent 输出：修复代码 + 对应测试
 3. **存档**：将测试报告写入 `.ai-workflow/artifacts/tests/TEST-{YYYYMMDD}-{NNN}.md`，更新 `index.md`
 4. 确认问题已解决且无副作用
 
+## Superpowers 插件增强（可选）
+
+如果目标项目已安装 Superpowers 插件，bajie 在 Phase 2 修复实现时可使用 TDD 和 systematic-debugging 技能，nezha 在 Phase 3 验证时可使用 verification-before-completion 技能。这不需要主会话额外编排。
+
 ## 关键约束
 - Bug 修复无人工门控点（修复范围通常较小）
 - 修复必须包含对应的回归测试

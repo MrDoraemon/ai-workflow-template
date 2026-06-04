@@ -15,7 +15,7 @@ ARCH 架构契约
   ↓
 CG 编码前上下文预检
   ↓
-PLG 编码合规预检
+PLG 编码合规审查
   ↓
 CTG 交付预检
   ↓
@@ -54,7 +54,7 @@ QA / Review / Security
 ## CG / PLG / CTG
 
 - CG：bajie 编码前必须完成上下文预检。
-- PLG：wukong 对照 ARCH 契约检查实现，发现偏差必须修复。
+- PLG：wukong 对照 ARCH 契约审查实现，发现偏差必须修复。
 - CTG：主会话执行交付预检，阻断项未清零不得交付。
 
 ## Runtime 边界

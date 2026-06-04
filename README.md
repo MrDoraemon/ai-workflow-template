@@ -6,9 +6,9 @@
 
 - **7 个抽象角色契约**：需求分析、架构设计、开发实现、质量验证、代码评审、安全审计、运维部署
 - **3 条工作流**：新功能开发（含 4 阶段质量门控）、Bug 修复、发布部署
-- **4 阶段质量门控 + RCG 需求澄清 + TDR 方案选择**：需求澄清(RCG) → 技术决策评审(TDR) → 设计预检(DG) → 编码前预检(CG) → 编码合规(PLG) → 交付预检(CTG)
+- **4 阶段质量门控 + RCG 需求澄清 + TDR 方案选择**：需求澄清(RCG) → 技术决策评审(TDR) → 设计预检(DG) → 编码前预检(CG) → 编码合规审查(PLG) → 交付预检(CTG)
 - **3 档流程强度**：lite / standard / strict，可按项目默认选择，也可在单次任务中临时覆盖
-- **跨系统初始化**：支持 macOS / Linux / Git Bash 的 Bash 脚本，也支持 Windows PowerShell
+- **跨系统初始化**：支持 macOS / Linux / Git Bash 的 Bash 脚本（前提：已安装 git bash）
 - **跨工具兼容**：支持 Claude Code、Codex CLI、OpenCode
 - **Runtime Adapter**：支持 native 原生轻量模板，也可接入 oh-my-claudecode / oh-my-opencode
 - **通用型设计**：不绑定技术栈，核心协议安装到 `.ai-workflow/`
@@ -31,30 +31,11 @@ curl -fsSL https://raw.githubusercontent.com/MrDoraemon/ai-workflow-template/mai
 bash /tmp/init-workflow.sh
 ```
 
-### Windows PowerShell
-
-```powershell
-# 方式一：clone 后引用（推荐）
-git clone https://github.com/MrDoraemon/ai-workflow-template.git $env:TEMP\ai-workflow-template
-cd C:\path\to\your-project
-powershell -ExecutionPolicy Bypass -File $env:TEMP\ai-workflow-template\init-workflow.ps1
-
-# 方式二：直接下载脚本（脚本会自动下载 templates 模板包）
-cd C:\path\to\your-project
-iwr https://raw.githubusercontent.com/MrDoraemon/ai-workflow-template/main/init-workflow.ps1 -OutFile $env:TEMP\init-workflow.ps1
-powershell -ExecutionPolicy Bypass -File $env:TEMP\init-workflow.ps1
-```
-
 脚本采用**零侵入架构**：不修改项目中已有的 `AGENTS.md`、`CLAUDE.md` 等文件，所有工作流配置安装到 `.ai-workflow/` 目录。直接下载单脚本时，脚本会从 GitHub archive 自动下载 `templates/`。如使用 fork、私有仓库或指定分支，可设置：
 
 ```bash
 export AI_WORKFLOW_TEMPLATE_REPO=https://github.com/MrDoraemon/ai-workflow-template
 export AI_WORKFLOW_TEMPLATE_REF=main
-```
-
-```powershell
-$env:AI_WORKFLOW_TEMPLATE_REPO = "https://github.com/MrDoraemon/ai-workflow-template"
-$env:AI_WORKFLOW_TEMPLATE_REF = "main"
 ```
 
 交互式向导会引导你选择：
@@ -71,27 +52,21 @@ $env:AI_WORKFLOW_TEMPLATE_REF = "main"
 ```bash
 # 非交互模式（全部默认）
 ./init-workflow.sh --tool claude-code --non-interactive
-powershell -ExecutionPolicy Bypass -File .\init-workflow.ps1 -Tool claude-code -NonInteractive
 
 # 指定流程强度
 ./init-workflow.sh --tool all --mode standard --non-interactive
-powershell -ExecutionPolicy Bypass -File .\init-workflow.ps1 -Tool all -Mode standard -NonInteractive
 
 # 指定角色契约和工作流
-./init-workflow.sh --tool opencode --mode lite --agents tangseng,architect,developer --workflows feature-flow
-powershell -ExecutionPolicy Bypass -File .\init-workflow.ps1 -Tool opencode -Mode lite -Agents tangseng,architect,developer -Workflows feature-flow
+./init-workflow.sh --tool opencode --mode lite --agents tangseng,wukong,bajie --workflows feature-flow
 
 # 接入 oh-my-claudecode（不生成本项目自带 Claude Agent）
 ./init-workflow.sh --tool claude-code --runtime oh-my-claudecode --mode standard --non-interactive
-powershell -ExecutionPolicy Bypass -File .\init-workflow.ps1 -Tool claude-code -Runtime oh-my-claudecode -Mode standard -NonInteractive
 
 # 接入 oh-my-opencode（不生成本项目自带 OpenCode Agent）
 ./init-workflow.sh --tool opencode --runtime oh-my-opencode --mode standard --non-interactive
-powershell -ExecutionPolicy Bypass -File .\init-workflow.ps1 -Tool opencode -Runtime oh-my-opencode -Mode standard -NonInteractive
 
 # 查看帮助
 ./init-workflow.sh --help
-powershell -ExecutionPolicy Bypass -File .\init-workflow.ps1 -Help
 ```
 
 ## 流程强度
@@ -99,7 +74,7 @@ powershell -ExecutionPolicy Bypass -File .\init-workflow.ps1 -Help
 | 模式 | 适用场景 | 默认流程 |
 |------|----------|----------|
 | lite | 小改动、快速原型、低风险修复 | bajie 实现 → 自测/构建 → 可选 erlang（RCG/TDR 可快速通过） |
-| standard | 常规功能开发（默认推荐） | tangseng(+RCG 需求澄清) → wukong(+TDR 方案选择) → bajie → PLG → CTG → nezha → erlang |
+| standard | 常规功能开发（默认推荐） | tangseng(+RCG 需求澄清) → wukong(+TDR 方案选择) → bajie → PLG → CTG → nezha(增量重做) → erlang(增量重做) |
 | strict | 生产级、安全敏感、多人协作 | standard + 强制 lijing + RCG/TDR 必须存档 + 更严格人工门控 + 发布检查 |
 
 初始化时选择的模式会写入 `.ai-workflow/` 配置。单次任务可临时覆盖，例如”本次用 lite 模式修复”或”这个支付功能走 strict 模式”。
@@ -116,14 +91,35 @@ powershell -ExecutionPolicy Bypass -File .\init-workflow.ps1 -Help
 
 本项目核心只定义 SDLC 协议、门禁和产物契约。native runtime 会生成本项目自带 Agent；oh-my-claudecode / oh-my-opencode runtime 则只生成适配说明，由外部 runtime 的 Team / Autopilot / Ultrawork / Ralph / Sisyphus 等能力负责执行。
 
-权限控制采用”工具层限制 + 提示词约束”双层设计。RCG（需求澄清）在所有工具中通过 tangseng/需求角色强制输出 RCU 实现；TDR（技术决策评审）在 native Claude Code 中通过 PreToolUse Hook 实现硬约束。所有工具通用协议统一安装在 `.ai-workflow/` 目录，产出物存档到 `.ai-workflow/artifacts/`，卸载执行 `./.ai-workflow/uninstall.sh`。
+权限控制采用”工具层限制 + 提示词约束”双层设计。RCG（需求澄清）在所有工具中通过 tangseng/需求角色强制输出 RCU 实现；TDR（技术决策评审）在 native Claude Code 中通过 PreToolUse Hook 实现硬约束。所有工具通用协议统一安装在 `.ai-workflow/` 目录，产出物存档到 `.ai-workflow/artifacts/`。
+
+## Superpowers 插件集成（可选增强）
+
+本项目模板内置了与 [Superpowers](https://github.com/anthropics/superpowers) Claude Code 插件的可选集成。如果目标项目已安装 Superpowers 插件，Agent 会自动在对应阶段调用编码纪律技能。
+
+### 集成的技能
+
+| Agent | 融入的技能 | 增强效果 |
+|-------|-----------|---------|
+| bajie（开发） | TDD + writing-plans + subagent-driven + verification | 实现有 RED→GREEN→REFACTOR 纪律 |
+| nezha（测试） | systematic-debugging + verification | 测试失败有系统化根因追踪 |
+| erlang（评审） | requesting/receiving-code-review | 评审有标准化流程 |
+| wukong（架构） | brainstorming | TDR 方案探索更深入 |
+
+### 优雅降级
+
+未安装 Superpowers 插件时，Agent 定义中的技能引用为纯文本说明，不影响任何功能。安装后自动生效，无需额外配置。
+
+### TDD 角色分工
+
+bajie 使用 TDD 编写单元测试（覆盖契约签名、边界条件），nezha 独立负责集成测试和覆盖率分析。两者互补不冲突。
 
 ## 角色契约
 
 | 角色 | 职责 | 权限 |
 |------|------|------|
 | tangseng | 需求分析，输出 REQ 文档 | 只读 |
-| wukong | 架构设计 | 只读 |
+| wukong | 技术决策、架构契约、编码合规审查 | 只读 |
 | bajie | 通用功能实现 | 读写任务范围内代码 |
 | nezha | 测试编写与执行 | 读写测试 |
 | erlang | 代码评审 | 只读 |
@@ -147,47 +143,13 @@ bajie（编码实现 + CG 预检；可按模块并行调度）
   ↓
 wukong → PLG 编码合规审查
   ↓
-交付预检(CTG) → nezha(测试) → erlang(评审)
-```
-
-## 卸载
-
-### 卸载前须知
-
-卸载脚本会删除所有 AI Workflow 相关的配置文件，包括：
-- `.ai-workflow/` — 通用协议、角色契约、门禁协议、工作流定义
-- `.claude/agents/` — Claude Code Agent 定义
-- `.claude/workflows/` — Claude Code 工作流
-- `.claude/commands/` — 快捷命令
-- `.claude/hooks/` — TDR 门禁 Hook
-- `.claude/CLAUDE.md` — 协作协议（仅 AI Workflow 添加的内容）
-- `.claude/settings.local.json` — 权限配置
-- `.opencode/agents/` — OpenCode Agent 定义
-- `.opencode.json` — OpenCode 配置
-- `.ai-workflow/artifacts/` — 产出物存档（**重要数据，建议备份**）
-
-### 备份产出物
-
-如果项目中有重要的需求文档（REQ）、架构设计（ARCH）、测试计划等，建议在卸载前备份：
-
-```bash
-# macOS / Linux / Git Bash
-cp -r .ai-workflow/artifacts ~/ai-workflow-artifacts-backup
-
-# Windows PowerShell
-Copy-Item -Recurse .ai-workflow\artifacts $HOME\ai-workflow-artifacts-backup
-```
-
-### 执行卸载
-
-```bash
-# macOS / Linux / Git Bash
-./.ai-workflow/uninstall.sh
-
-# Windows PowerShell
-bash .\.ai-workflow\uninstall.sh
-# 或者在 Git Bash 中执行
-./.ai-workflow/uninstall.sh
+交付预检(CTG)
+  ↓
+nezha(测试) ── 内部重做循环（增量模式）
+  ↓
+erlang(评审) ── 内部重做循环（增量模式）
+  ↓          └── 行为变更修复 → 回退 nezha 重测
+合并就绪
 ```
 
 ## 初始化后要做的事
@@ -202,14 +164,12 @@ bash .\.ai-workflow\uninstall.sh
    - `/nezha` — 测试编写与执行
    - `/erlang` — 代码评审
    - `/lijing` — 安全审计
-5. 卸载工作流：`./.ai-workflow/uninstall.sh`
 
 ## 目录结构
 
 ```
 ai-workflow-template/
 ├── init-workflow.sh              # 初始化脚本
-├── init-workflow.ps1             # Windows PowerShell 初始化脚本
 ├── templates/
 │   ├── universal/                # 通用层
 │   │   ├── AGENTS.md             # AGENTS.md 模板（仅新建时使用）
@@ -236,6 +196,36 @@ ai-workflow-template/
 │       ├── oh-my-claudecode/
 │       └── oh-my-opencode/
 └── README.md
+```
+
+## 卸载
+
+### 卸载前须知
+
+卸载脚本会删除所有 AI Workflow 相关的配置文件，包括：
+- `.ai-workflow/` — 通用协议、角色契约、门禁协议、工作流定义
+- `.claude/agents/` — Claude Code Agent 定义
+- `.claude/workflows/` — Claude Code 工作流
+- `.claude/commands/` — 快捷命令
+- `.claude/hooks/` — TDR 门禁 Hook
+- `.claude/CLAUDE.md` — 协作协议（仅 AI Workflow 添加的内容）
+- `.claude/settings.local.json` — 权限配置
+- `.opencode/agents/` — OpenCode Agent 定义
+- `.opencode.json` — OpenCode 配置
+- `.ai-workflow/artifacts/` — 产出物存档（**重要数据，建议备份**）
+
+### 备份产出物
+
+如果项目中有重要的需求文档（REQ）、架构设计（ARCH）、测试计划等，建议在卸载前备份：
+
+```bash
+cp -r .ai-workflow/artifacts ~/ai-workflow-artifacts-backup
+```
+
+### 执行卸载
+
+```bash
+./.ai-workflow/uninstall.sh
 ```
 
 ## License
