@@ -21,20 +21,20 @@
 
 ```bash
 # 方式一：clone 后引用（推荐）
-git clone https://github.com/MrDoraemon/ai-workflow-template.git /tmp/ai-workflow-template
+git clone https://gitlab.com/jiangqiao/ai-workflow-template.git /tmp/ai-workflow-template
 cd /path/to/your-project
 /tmp/ai-workflow-template/init-workflow.sh
 
 # 方式二：直接下载脚本（脚本会自动下载 templates 模板包）
 cd /path/to/your-project
-curl -fsSL https://raw.githubusercontent.com/MrDoraemon/ai-workflow-template/main/init-workflow.sh -o /tmp/init-workflow.sh
+curl -fsSL https://gitlab.com/jiangqiao/ai-workflow-template/-/raw/main/init-workflow.sh -o /tmp/init-workflow.sh
 bash /tmp/init-workflow.sh
 ```
 
 脚本采用**零侵入架构**：不修改项目中已有的 `AGENTS.md`、`CLAUDE.md` 等文件，所有工作流配置安装到 `.ai-workflow/` 目录。直接下载单脚本时，脚本会从 GitHub archive 自动下载 `templates/`。如使用 fork、私有仓库或指定分支，可设置：
 
 ```bash
-export AI_WORKFLOW_TEMPLATE_REPO=https://github.com/MrDoraemon/ai-workflow-template
+export AI_WORKFLOW_TEMPLATE_REPO=https://gitlab.com/jiangqiao/ai-workflow-template
 export AI_WORKFLOW_TEMPLATE_REF=main
 ```
 
@@ -120,8 +120,8 @@ bajie 使用 TDD 编写单元测试（覆盖契约签名、边界条件），nez
 |------|------|------|
 | tangseng | 需求分析，输出 REQ 文档 | 只读 |
 | wukong | 技术决策、架构契约、编码合规审查 | 只读 |
-| bajie | 通用功能实现 | 读写任务范围内代码 |
-| nezha | 测试编写与执行 | 读写测试 |
+| bajie | 功能实现与 TDD 单元测试 | 读写任务范围内代码 |
+| nezha | 集成测试与回归验证 | 读写测试 |
 | erlang | 代码评审 | 只读 |
 | lijing | 安全审计 | 只读 |
 | bailongma | CI/CD 和部署 | 读写配置 |
@@ -139,13 +139,13 @@ wukong → TDR 文档（技术决策评审 + 用户选择方案）
   ↓
 wukong → ARCH 文档（架构设计 + DG 自检）
   ↓
-bajie（编码实现 + CG 预检；可按模块并行调度）
+bajie（编码实现 + TDD 单元测试 + CG 预检；可按模块并行调度）
   ↓
 wukong → PLG 编码合规审查
   ↓
 交付预检(CTG)
   ↓
-nezha(测试) ── 内部重做循环（增量模式）
+nezha(集成测试+回归) ── 内部重做循环（增量模式）
   ↓
 erlang(评审) ── 内部重做循环（增量模式）
   ↓          └── 行为变更修复 → 回退 nezha 重测

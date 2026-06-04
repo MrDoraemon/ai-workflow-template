@@ -7,3 +7,6 @@
 # Sensitive files
 .env
 *.local
+
+# Local docs
+docs/
