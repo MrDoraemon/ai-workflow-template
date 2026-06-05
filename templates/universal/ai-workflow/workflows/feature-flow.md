@@ -26,7 +26,10 @@
 ### Phase 1B: 需求文档 REQ（顺序执行，依赖 Phase 1A）
 1. 将用户原始需求 + 已确认 RCU 传递给 tangseng Agent
 2. tangseng 输出 REQ-{YYYYMMDD}-{NNN} 文档
-3. **存档**：将 RCU 和 REQ 写入 `.ai-workflow/artifacts/requirements/`，更新 `index.md`
+3. **存档**（遵循存档协议）：
+   - 将 RCU 和 REQ 的完整原文写入 `.ai-workflow/artifacts/requirements/`
+   - 验证文件包含所有必需章节（RCU: §1-§7, REQ: §1-§9）
+   - 更新 `index.md`
 4. **人工门控点**：展示 REQ 文档，等待用户确认
 
 ### Phase 2: 架构设计（顺序执行，依赖 Phase 1）
@@ -41,7 +44,10 @@
 4. 将用户选择结果 + REQ 文档传递给 wukong Agent
    - wukong 根据用户选择生成 ARCH-{YYYYMMDD}-{NNN} 文档（含模块任务划分）
 5. **设计自检**：wukong Agent 必须输出设计自检报告（DG-01~DG-09），100% PASS 才能继续
-6. **存档**：将 TDR 和 ARCH 文档写入 `.ai-workflow/artifacts/architectures/`，更新 `index.md`
+6. **存档**（遵循存档协议）：
+   - 将 TDR 和 ARCH 的完整原文写入 `.ai-workflow/artifacts/architectures/`
+   - 验证文件包含所有必需章节（TDR: §1-§4, ARCH: §1-§10 + DG 自检）
+   - 更新 `index.md`
 7. **人工门控点**：展示 ARCH 文档，等待用户确认
 
 ### Phase 3: 编码实现（可按模块并行执行）
@@ -67,14 +73,16 @@ Phase 3 编码实现完成后，调用 wukong Agent 执行编码合规审查（P
 1. CTG-01 项目可运行性：项目约定的启动、构建或关键脚本可执行，无 import/编译/加载错误
 2. CTG-02 测试可执行性：项目声明的测试命令可运行，无环境、fixture 或依赖声明缺失
 3. CTG-03 配置完整性：新增配置项有默认值、示例或文档说明
-4. CTG-04 存档一致性：ARCH 文档、REQ 文档、实际代码三方一致
+4. CTG-04 存档一致性与完整性：
+   - 文档完整性：验证 ARCH 文档包含全部 10 个必需章节 + DG 自检，REQ 文档包含全部 9 个必需章节
+   - 三方一致性：ARCH 文档、REQ 文档、实际代码之间无矛盾或遗漏
 5. CTG-05 依赖声明验证：项目依赖文件中的新增依赖与 ARCH 声明一致
 6. 输出交付合规报告：阻断项必须修复，非阻断项输出风险清单
 7. **人工终审**：用户查看差异清单和风险清单后，决定是否进入测试环节
 
 #### 5b. 测试验证（首次全量）
 1. 调用 nezha（补充测试 + 全面回归）
-2. **存档**：将测试报告写入 `.ai-workflow/artifacts/tests/TEST-{YYYYMMDD}-{NNN}.md`，更新 `index.md`
+2. **存档**（遵循存档协议）：将测试报告完整原文写入 `.ai-workflow/artifacts/tests/TEST-{YYYYMMDD}-{NNN}.md`，验证结构完整性，更新 `index.md`
 
 #### 5c. nezha 重做循环（条件执行）
 如 nezha 发现测试失败：
@@ -98,7 +106,7 @@ Phase 3 编码实现完成后，调用 wukong Agent 执行编码合规审查（P
 #### 6a. 首次评审（全量）
 1. 调用 erlang（全量评审：所有变更文件 × 11 维度）
 2. 如有安全敏感变更，调用 lijing
-3. **存档**：将评审报告写入 `.ai-workflow/artifacts/reviews/REV-{YYYYMMDD}-{NNN}.md`，更新 `index.md`
+3. **存档**（遵循存档协议）：将评审报告完整原文写入 `.ai-workflow/artifacts/reviews/REV-{YYYYMMDD}-{NNN}.md`，验证结构完整性，更新 `index.md`
 
 #### 6b. erlang 重做循环（条件执行）
 如 erlang 发现致命/严重问题：

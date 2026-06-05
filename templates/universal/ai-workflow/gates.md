@@ -51,6 +51,10 @@ QA / Review / Security
 - ARCH 必须基于已确认的 REQ 和 TDR 决策生成。
 - ARCH 必须包含 DG 自检，且 100% PASS 后才能进入编码。
 
+## 存档验证
+
+每次存档操作后必须执行结构完整性验证（详见 protocol.md 存档协议）。CTG-04 交付预检中增加文档完整性复核。
+
 ## CG / PLG / CTG
 
 - CG：bajie 编码前必须完成上下文预检。
