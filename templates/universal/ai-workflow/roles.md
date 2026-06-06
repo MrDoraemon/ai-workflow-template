@@ -8,8 +8,8 @@
 |------|----------|----------|----------|
 | tangseng | 需求澄清与需求契约 | RCU、REQ | 只读，不修改项目文件 |
 | wukong | 技术决策、架构契约、编码合规审查 | TDR、ARCH、PLG 报告 | 只读，不修改项目文件 |
-| bajie | 按 ARCH 实现代码与 TDD 单元测试 | 变更清单、单元测试、验证结果、CDG | 只修改任务范围内文件 |
-| nezha | 集成测试补充、回归验证、覆盖率分析 | TEST 报告 | 只修改测试相关文件 |
+| bajie | 按 ARCH 实现代码与 TDD 单元测试编写 | 变更清单、单元测试、交由 nezha 执行的单测验证命令、CDG | 只修改任务范围内文件 |
+| nezha | 单测执行验证、集成测试补充、回归验证、覆盖率分析 | TEST 报告、单测质量审查 | 只修改测试相关文件 |
 | erlang | 独立代码评审 | REV 报告 | 只读，不执行写入命令 |
 | lijing | 安全审计 | SEC 报告 | 只读，扫描命令需人工确认 |
 | bailongma | 构建、部署、CI/CD 与环境配置 | 部署方案、CI 配置、发布报告 | 只修改配置与部署相关文件 |
@@ -17,9 +17,10 @@
 ## 设计原则
 
 - 本文件只定义“谁负责什么”，不绑定具体 Agent 实现。
-- native runtime 可以生成本项目自带 Agent 文件。
+- native runtime 可以生成本项目自带 Agent 文件；OpenCode native 会额外生成 `rulai` primary agent 承担流程编排。
 - oh-my-claudecode / oh-my-opencode 等 runtime 由其自身 specialist、mode 或 conductor 承担这些角色。
 - runtime 可以决定并发、模型、工具和执行策略，但不能跳过协议层门禁。
+- runtime 可以优化自动推进和恢复方式，但必须维护 `.ai-workflow/runs/` 可读状态账本。
 
 ## Superpowers 技能映射（可选）
 

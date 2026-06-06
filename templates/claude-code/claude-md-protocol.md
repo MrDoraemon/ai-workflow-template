@@ -58,8 +58,8 @@
 |---|---|---|---|
 | tangseng | `.claude/agents/tangseng.md` | 只读 | 需求分析，输出 REQ 文档 |
 | wukong | `.claude/agents/wukong.md` | 只读 | 技术决策评审(TDR)、架构设计(ARCH)、编码合规审查(PLG) |
-| bajie | `.claude/agents/bajie.md` | 读写任务范围内代码 | 通用功能实现 |
-| nezha | `.claude/agents/nezha.md` | 读写测试 | 测试编写与执行 |
+| bajie | `.claude/agents/bajie.md` | 读写任务范围内代码 | 功能实现与 TDD 单元测试编写 |
+| nezha | `.claude/agents/nezha.md` | 读写测试 | 单测执行验证、集成测试、回归验证、覆盖率分析 |
 | erlang | `.claude/agents/erlang.md` | 只读 | 代码评审 |
 | lijing | `.claude/agents/lijing.md` | 只读 | 安全审计 |
 | bailongma | `.claude/agents/bailongma.md` | 读写配置 | CI/CD 和部署 |
@@ -68,7 +68,7 @@
 
 ### 流水线触发规则
 
-- **新功能需求** → tangseng(+RCG 需求澄清) → wukong(+TDR 方案选择+设计自检 DG) → bajie(+上下文预检 CG，可按模块并行调度) → wukong(+编码合规审查 PLG) → 交付预检(CTG) → nezha → erlang
+- **新功能需求** → tangseng(+RCG 需求澄清) → wukong(+TDR 方案选择+设计自检 DG) → bajie(+上下文预检 CG + 单测编写，可按模块并行调度) → wukong(+编码合规审查 PLG) → 交付预检(CTG) → nezha(+单测验证 + 测试补强) → erlang
 - **Bug 修复** → 定位问题 → bajie → nezha → erlang
 - **代码评审** → erlang（可选 + lijing）
 - **部署** → nezha → lijing → bailongma
@@ -107,6 +107,20 @@
 
 验证方法：扫描文件中的章节标题标记，与上表比对。缺失任一必需章节即判定为验证失败。
 
+### 运行状态协议
+
+流水线执行过程中，主会话必须维护 `.ai-workflow/runs/` 运行态账本。每次任务创建一个 `RUN-{YYYYMMDD-HHMMSS}-{flow}/` 目录，至少包含：
+
+- `state.json`：当前 flow、mode、runtime、phase、gate、status、next_action
+- `events.jsonl`：路由、Agent 完成、用户确认、门禁阻断、返工、恢复等不可变事件
+- `metrics.json`：阶段耗时、调度次数、返工轮次、阻断项、验证次数等复盘指标
+- `summary.md`：本次任务最终交付摘要
+- `evolution.md`：自我进化建议
+
+调度 Agent 或执行门禁前，主会话必须读取 `state.json`，不得只依赖上下文记忆。遇到 RCG、TDR、ARCH、CTG 等人工门控时，`status` 必须更新为 `WAITING_USER`；遇到测试失败、评审阻断或门禁失败时，必须进入 `REWORK` 或 `BLOCKED` 并记录归因。
+
+`evolution.md` 只提出 local-tweak / template-candidate / runtime-adapter 建议，不自动修改模板、项目代码、权限或门禁。
+
 ### 质量门控（四阶段）
 
 | 阶段 | 名称 | 执行者 | 门禁强度 | 规则 |
@@ -115,3 +129,5 @@
 | 2 | 编码前上下文预检 (CG-01~07) | bajie 自检 | **强门禁** | 100% PASS → 才能编码 |
 | 3 | 编码合规审查 (PLG-01~07) | wukong 独立审查 | **强门禁** | 发现即修复，不可带病推进 |
 | 4 | 交付预检 (CTG-01~05) | 主会话 | **分级门控** | 阻断项必修 + 风险清单 + 人工终审 |
+
+CTG-04 必须额外检查 `state.json`、confirmed 标记和 artifacts 的一致性；不一致时进入 `BLOCKED`。

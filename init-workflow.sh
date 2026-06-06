@@ -12,10 +12,30 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 TARGET_DIR="$(pwd)"
-TEMPLATE_REPO_URL="${AI_WORKFLOW_TEMPLATE_REPO:-https://github.com/MrDoraemon/ai-workflow-template}"
+TEMPLATE_REPO_URL="${AI_WORKFLOW_TEMPLATE_REPO:-https://gitlab.com/jiangqiao/ai-workflow-template}"
+TEMPLATE_REPO_URL="${TEMPLATE_REPO_URL%/}"
 TEMPLATE_REF="${AI_WORKFLOW_TEMPLATE_REF:-main}"
-TEMPLATE_ARCHIVE_URL="${AI_WORKFLOW_TEMPLATE_ARCHIVE_URL:-${TEMPLATE_REPO_URL}/archive/refs/heads/${TEMPLATE_REF}.zip}"
 TEMP_TEMPLATE_DIR=""
+
+default_archive_url() {
+  local repo="${1%.git}"
+  local ref="$2"
+  local project="${repo##*/}"
+
+  case "$repo" in
+    https://gitlab.com/*)
+      printf '%s/-/archive/%s/%s-%s.zip' "$repo" "$ref" "$project" "$ref"
+      ;;
+    https://github.com/*)
+      printf '%s/archive/refs/heads/%s.zip' "$repo" "$ref"
+      ;;
+    *)
+      printf '%s/archive/refs/heads/%s.zip' "$repo" "$ref"
+      ;;
+  esac
+}
+
+TEMPLATE_ARCHIVE_URL="${AI_WORKFLOW_TEMPLATE_ARCHIVE_URL:-$(default_archive_url "$TEMPLATE_REPO_URL" "$TEMPLATE_REF")}"
 
 # ─── 默认值 ───
 TOOL=""
@@ -266,14 +286,15 @@ safe_append_mode_protocol() {
     printf '### 模式定义\n\n'
     printf '| 模式 | 适用场景 | 默认流程 |\n'
     printf '|------|----------|----------|\n'
-    printf '| lite | 小改动、快速原型、低风险修复 | bajie 实现 → 自测/构建 → 可选 erlang |\n'
+    printf '| lite | 小改动、快速原型、低风险修复 | bajie 实现+单测编写 → 最小验证/可选 nezha → 可选 erlang |\n'
     printf '| standard | 常规功能开发 | tangseng → wukong → bajie → PLG → CTG → nezha → erlang |\n'
-    printf '| strict | 生产级、安全敏感、多人协作 | standard + 强制 security + 更严格人工门控 + 发布检查 |\n\n'
+    printf '| strict | 生产级、安全敏感、多人协作 | standard + 强制 lijing + 更严格人工门控 + 发布检查 |\n\n'
     printf '### 当前模式执行规则\n\n'
+    printf '%s\n' '- 流水线执行时必须维护 `.ai-workflow/runs/RUN-*/state.json` 和 `events.jsonl`，用于阶段恢复、门禁追踪和返工归因。'
     case "$MODE" in
       lite)
         printf '%s\n' '- 默认跳过独立 REQ/ARCH 产物，除非需求不清、影响范围跨模块或用户明确要求。'
-        printf '%s\n' '- bajie 必须完成必要上下文确认、实现、自测和验证命令。'
+        printf '%s\n' '- bajie 必须完成必要上下文确认、实现、单元测试编写，并输出交由 nezha 执行的单测验证命令。'
         printf '%s\n' '- erlang、nezha、lijing 按风险触发，不强制每次调用。'
         printf '%s\n' '- CTG 只检查本次变更相关的运行、构建、测试、依赖和配置项。'
         printf '%s\n' '- TDR（技术决策评审）仍需执行，但用户确认时可快速通过。'
@@ -282,7 +303,7 @@ safe_append_mode_protocol() {
       standard)
         printf '%s\n' '- 默认执行完整常规流水线：tangseng → wukong → bajie → PLG → CTG → nezha → erlang。'
         printf '%s\n' '- DG、CG、PLG、CTG 按模板定义执行；阻断项必须修复。'
-        printf '%s\n' '- security 在安全敏感、认证授权、依赖、配置、数据处理相关变更时触发。'
+        printf '%s\n' '- lijing 在安全敏感、认证授权、依赖、配置、数据处理相关变更时触发。'
         printf '%s\n' '- wukong 必须在 ARCH 文档前输出 TDR（技术决策评审），用户确认选择后再进入详细设计。'
         printf '%s\n' '- tangseng 必须在 REQ 文档前输出 RCU（需求理解确认），用户确认理解后再生成 REQ。'
         ;;
@@ -308,7 +329,7 @@ step1_select_tool() {
   echo -e "${CYAN}Step 1/6: 选择 AI 编码工具${NC}"
   echo "  1) Claude Code（完整多 Agent 编排 + 子 Agent 权限控制）"
   echo "  2) Codex CLI（AGENTS.md 角色段落模式）"
-  echo "  3) OpenCode（.opencode/agents/ 子 Agent 模式）"
+  echo "  3) OpenCode（.opencode/agents/，native 含 rulai 编排入口）"
   echo "  4) 全部生成（Claude Code + Codex + OpenCode + 通用 AGENTS.md）"
   echo -n "> "
   read -r choice
@@ -430,7 +451,7 @@ generate_universal() {
   local ai_wf="$TARGET_DIR/.ai-workflow"
   local src_dir="$SCRIPT_DIR/templates/universal/ai-workflow"
 
-  safe_mkdir "$ai_wf" "$ai_wf/workflows" "$ai_wf/runtimes"
+  safe_mkdir "$ai_wf" "$ai_wf/workflows" "$ai_wf/runtimes" "$ai_wf/runs"
 
   for doc in protocol.md roles.md gates.md runtime-map.md; do
     if [[ -f "$src_dir/$doc" ]]; then
@@ -451,6 +472,12 @@ generate_universal() {
       ok ".ai-workflow/workflows/${workflow}.md"
     fi
   done
+
+  # run-state protocol
+  if [[ -f "$src_dir/runs/README.md" ]] && [[ ! -f "$ai_wf/runs/README.md" ]]; then
+    safe_cp "$src_dir/runs/README.md" "$ai_wf/runs/README.md"
+    ok ".ai-workflow/runs/README.md"
+  fi
 
   # uninstall.sh
   if [[ -f "$src_dir/uninstall.sh" ]]; then
@@ -553,6 +580,9 @@ generate_claude_code() {
   safe_cp "$SCRIPT_DIR/templates/claude-code/hooks/tdr-gate.sh" "$TARGET_DIR/.claude/hooks/tdr-gate.sh"
   $DRY_RUN || chmod +x "$TARGET_DIR/.claude/hooks/tdr-gate.sh"
   ok "TDR gate hook 已安装"
+  if ! $DRY_RUN && ! command -v jq >/dev/null 2>&1; then
+    warn "TDR gate hook 依赖 jq；当前环境未检测到 jq，Claude Code Hook 将降级放行。建议安装 jq 后使用硬门禁。"
+  fi
 
   # .claude/CLAUDE.md（零侵入：不修改根目录 CLAUDE.md）
   if [[ -f "$SCRIPT_DIR/templates/claude-code/claude-md-protocol.md" ]]; then
@@ -606,6 +636,12 @@ generate_opencode() {
       ok "OpenCode Agent: ${agent}.md"
     fi
   done
+
+  local rulai_src="$SCRIPT_DIR/templates/opencode/agents/rulai.md"
+  if [[ -f "$rulai_src" ]]; then
+    safe_cp "$rulai_src" "$TARGET_DIR/.opencode/agents/rulai.md"
+    ok "OpenCode 编排 Agent: rulai.md"
+  fi
 
   if [[ ! -f "$TARGET_DIR/opencode.json" ]]; then
     if $DRY_RUN; then
@@ -665,6 +701,31 @@ generate_gitignore() {
     fi
     ok ".gitignore 已创建"
   fi
+}
+
+print_next_steps() {
+  echo ""
+  case "$RUNTIME:$TOOL" in
+    oh-my-claudecode:*)
+      echo "  下一步：阅读 .ai-workflow/runtimes/oh-my-claudecode/README.md，并在 oh-my-claudecode 中引用 .ai-workflow/protocol.md。"
+      ;;
+    oh-my-opencode:*)
+      echo "  下一步：阅读 .ai-workflow/runtimes/oh-my-opencode/README.md，并在 oh-my-opencode 中引用 .ai-workflow/protocol.md。"
+      ;;
+    native:claude-code)
+      echo "  下一步：编辑 .claude/CLAUDE.md 顶部的项目概述，然后开始使用。"
+      ;;
+    native:codex)
+      echo "  下一步：编辑 AGENTS.md 的项目概述，并阅读 .ai-workflow/protocol.md。"
+      ;;
+    native:opencode)
+      echo "  下一步：阅读 .ai-workflow/protocol.md 和 .opencode/agents/rulai.md，在 OpenCode 中优先使用 rulai 编排 workflow。"
+      ;;
+    native:all)
+      echo "  下一步：编辑 .claude/CLAUDE.md / AGENTS.md 的项目概述，并阅读 .ai-workflow/protocol.md。"
+      ;;
+  esac
+  echo "  卸载：./.ai-workflow/uninstall.sh"
 }
 
 # ─── 参数解析 ───
@@ -793,9 +854,7 @@ main() {
   echo "  工作流: ${#SELECTED_WORKFLOWS[@]} 条"
   echo "  流程强度: $MODE"
   $DRY_RUN && echo -e "  ${YELLOW}模式: DRY-RUN（未写入文件）${NC}"
-  echo ""
-  echo "  下一步：编辑 CLAUDE.md 顶部的项目概述，然后开始使用。"
-  echo "  卸载：./.ai-workflow/uninstall.sh"
+  print_next_steps
 }
 
 main "$@"

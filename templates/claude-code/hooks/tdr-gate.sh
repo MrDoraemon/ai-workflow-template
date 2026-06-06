@@ -5,6 +5,11 @@
 
 set -euo pipefail
 
+if ! command -v jq >/dev/null 2>&1; then
+  echo "tdr-gate.sh: jq not found; TDR gate is disabled for this call." >&2
+  exit 0
+fi
+
 INPUT=$(cat)
 
 TOOL_NAME=$(echo "$INPUT" | jq -r '.tool_name // empty')
@@ -45,14 +50,6 @@ fi
 CWD=$(echo "$INPUT" | jq -r '.cwd // empty')
 if [ -z "$CWD" ]; then
   exit 0
-fi
-
-# Check project mode — skip gate in lite mode
-CLAUDE_MD="$CWD/.claude/CLAUDE.md"
-if [ -f "$CLAUDE_MD" ]; then
-  if grep -q "当前项目默认模式：.*\`lite\`" "$CLAUDE_MD" 2>/dev/null; then
-    exit 0
-  fi
 fi
 
 # Check for confirmed TDR marker file

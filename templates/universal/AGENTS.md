@@ -25,8 +25,8 @@
 |------|------|------|
 | tangseng | 需求分析，输出 REQ 文档 | 只读 |
 | wukong | 技术决策、架构契约、编码合规审查 | 只读 |
-| bajie | 通用功能实现 | 读写任务范围内代码 |
-| nezha | 测试编写与执行 | 读写测试 |
+| bajie | 功能实现与 TDD 单元测试编写 | 读写任务范围内代码 |
+| nezha | 单测执行验证、集成测试、回归验证、覆盖率分析 | 读写测试 |
 | erlang | 代码评审 | 只读 |
 | lijing | 安全审计 | 只读 |
 | bailongma | CI/CD 和部署 | 读写配置 |
@@ -52,7 +52,7 @@
 
 ## 流水线触发规则
 
-- **新功能需求** → tangseng(+RCG 需求澄清) → wukong(+TDR 方案选择+设计自检 DG) → bajie(+上下文预检 CG，可按模块并行调度) → wukong(+编码合规审查 PLG) → 交付预检(CTG) → nezha → erlang
+- **新功能需求** → tangseng(+RCG 需求澄清) → wukong(+TDR 方案选择+设计自检 DG) → bajie(+上下文预检 CG + 单测编写，满足边界时可轻量并行) → wukong(+编码合规审查 PLG) → 交付预检(CTG) → nezha(+单测验证 + 测试补强) → erlang
 - **Bug 修复** → 定位问题 → bajie → nezha → erlang
 - **代码评审** → erlang（可选 + lijing）
 - **部署** → nezha → lijing → bailongma
@@ -64,7 +64,7 @@
 | 1 | 设计预检 (DG-01~09) | wukong 自检 | 强门禁：100% PASS 才能编码 |
 | 2 | 编码前上下文预检 (CG-01~07) | bajie 自检 | 强门禁：100% PASS 才能编码 |
 | 3 | 编码合规审查 (PLG-01~07) | wukong 独立审查 | 强门禁：发现即修复 |
-| 4 | 交付预检 (CTG-01~05) | 主会话 | 分级门控：阻断项必修 |
+| 4 | 交付预检 (CTG-01~05) | 主会话 / OpenCode native: rulai | 分级门控：阻断项必修 |
 
 ## 产出物存档规范
 
@@ -74,8 +74,29 @@
 - `tests/` — TEST 测试报告
 - `security/` — SEC 安全审计报告
 
+## 运行状态协议
+
+流水线执行必须维护 `.ai-workflow/runs/` 运行态账本。每次任务创建一个 `RUN-{YYYYMMDD-HHMMSS}-{flow}/` 目录，至少包含：
+
+- `state.json`：当前 flow、mode、runtime、phase、gate、status、next_action
+- `events.jsonl`：路由、Agent 完成、用户确认、门禁阻断、返工、恢复等不可变事件
+- `metrics.json`：阶段耗时、调度次数、返工轮次、阻断项、验证次数等复盘指标
+- `summary.md`：本次任务最终交付摘要
+- `evolution.md`：自我进化建议
+
+每次调度 Agent 或执行门禁前，主会话或 runtime 编排者必须读取 `state.json`，不得只依赖上下文记忆。遇到 RCG、TDR、ARCH、CTG 等人工门控时，`status` 必须更新为 `WAITING_USER`；遇到测试失败、评审阻断或门禁失败时，必须进入 `REWORK` 或 `BLOCKED` 并记录归因。
+
+`evolution.md` 只提出 local-tweak / template-candidate / runtime-adapter 建议，不自动修改模板、项目代码、权限或门禁。
+
+## Runtime 编排者
+
+- Claude Code / Codex CLI：由主会话承担流程编排、产物传递、门禁停顿和 CTG。
+- OpenCode native：由 `rulai` primary agent 承担上述编排职责，业务角色仍作为 subagent 执行专业任务；仅在 ARCH 模块边界清晰且互不冲突时执行轻量并行。
+- oh-my-claudecode / oh-my-opencode：由外部 runtime 的 Team / Autopilot / Ultrawork / Ralph / Sisyphus 等能力承担编排，本项目不重复生成 native 编排 agent。
+
 ## 协作原则
 
-- 主会话充当编排者，按需调度子 Agent
-- Agent 之间不直接调用，数据通过主会话传递
-- 每个阶段完成后必须通知主会话当前状态
+- 主会话或 runtime 编排者按需调度子 Agent
+- Agent 之间不直接调用，数据通过主会话或 runtime 编排者传递
+- 每个阶段完成后必须通知主会话或 runtime 编排者当前状态
+- 每个阶段完成后必须更新 `.ai-workflow/runs/` 中的运行状态和事件日志

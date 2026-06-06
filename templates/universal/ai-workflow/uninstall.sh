@@ -24,9 +24,10 @@ if [[ ! -f "$MANIFEST" ]]; then
   warn "未找到安装清单 ($MANIFEST)"
   echo "将执行默认清理..."
   # Default cleanup - remove known directories
-  rm -rf "$TARGET_DIR/.claude/agents" "$TARGET_DIR/.claude/workflows" "$TARGET_DIR/.claude/commands" "$TARGET_DIR/.claude/artifacts"
+  rm -rf "$TARGET_DIR/.claude/agents" "$TARGET_DIR/.claude/workflows" "$TARGET_DIR/.claude/commands" "$TARGET_DIR/.claude/hooks" "$TARGET_DIR/.claude/artifacts"
   rm -f "$TARGET_DIR/.claude/CLAUDE.md" "$TARGET_DIR/.claude/settings.local.json"
   rm -rf "$TARGET_DIR/.opencode/agents"
+  rm -f "$TARGET_DIR/opencode.json"
   rm -rf "$TARGET_DIR/.ai-workflow"
   info "默认清理完成"
   exit 0

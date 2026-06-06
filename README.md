@@ -4,20 +4,23 @@
 
 ## 特性
 
-- **7 个抽象角色契约**：需求分析、架构设计、开发实现、质量验证、代码评审、安全审计、运维部署
+- **7 个抽象角色契约**：需求分析、架构设计、开发实现、质量验证、代码评审、安全审计、运维部署；OpenCode native 额外提供 `rulai` 编排入口
 - **3 条工作流**：新功能开发（含 4 阶段质量门控）、Bug 修复、发布部署
 - **4 阶段质量门控 + RCG 需求澄清 + TDR 方案选择**：需求澄清(RCG) → 技术决策评审(TDR) → 设计预检(DG) → 编码前预检(CG) → 编码合规审查(PLG) → 交付预检(CTG)
 - **3 档流程强度**：lite / standard / strict，可按项目默认选择，也可在单次任务中临时覆盖
-- **跨系统初始化**：支持 macOS / Linux / Git Bash 的 Bash 脚本（前提：已安装 git bash）
+- **跨系统初始化**：支持 macOS / Linux / Windows Git Bash 的 Bash 脚本
 - **跨工具兼容**：支持 Claude Code、Codex CLI、OpenCode
 - **Runtime Adapter**：支持 native 原生轻量模板，也可接入 oh-my-claudecode / oh-my-opencode
+- **运行状态账本**：通过 `.ai-workflow/runs/` 记录 state、events、metrics、summary 和 evolution 建议，支持恢复、审计和复盘
 - **通用型设计**：不绑定技术栈，核心协议安装到 `.ai-workflow/`
 
 ## 快速开始
 
 在**你的项目目录**中执行初始化脚本。
 
-### macOS / Linux / Git Bash
+### macOS / Linux / Windows Git Bash
+
+Windows 用户请在 Git Bash 中运行初始化脚本。
 
 ```bash
 # 方式一：clone 后引用（推荐）
@@ -31,12 +34,14 @@ curl -fsSL https://gitlab.com/jiangqiao/ai-workflow-template/-/raw/main/init-wor
 bash /tmp/init-workflow.sh
 ```
 
-脚本采用**零侵入架构**：不修改项目中已有的 `AGENTS.md`、`CLAUDE.md` 等文件，所有工作流配置安装到 `.ai-workflow/` 目录。直接下载单脚本时，脚本会从 GitHub archive 自动下载 `templates/`。如使用 fork、私有仓库或指定分支，可设置：
+脚本采用**个人本地零侵入架构**：不修改项目中已有的 `AGENTS.md`、`CLAUDE.md` 等文件，所有工作流配置安装到 `.ai-workflow/` 目录，并默认写入 `.gitignore`。直接下载单脚本时，脚本会从 GitLab archive 自动下载 `templates/`。如使用 fork、私有仓库或指定分支，可设置：
 
 ```bash
 export AI_WORKFLOW_TEMPLATE_REPO=https://gitlab.com/jiangqiao/ai-workflow-template
 export AI_WORKFLOW_TEMPLATE_REF=main
 ```
+
+`.ai-workflow/` 默认不提交到业务仓库，方便个人按自己的人机协作模式本地定制。若团队希望共享流程协议，可自行移除对应忽略规则并提交定制后的协议文件。
 
 交互式向导会引导你选择：
 1. AI 编码工具（Claude Code / Codex CLI / OpenCode / 全部）
@@ -73,7 +78,7 @@ export AI_WORKFLOW_TEMPLATE_REF=main
 
 | 模式 | 适用场景 | 默认流程 |
 |------|----------|----------|
-| lite | 小改动、快速原型、低风险修复 | bajie 实现 → 自测/构建 → 可选 erlang（RCG/TDR 可快速通过） |
+| lite | 小改动、快速原型、低风险修复 | bajie 实现+单测编写 → 最小验证/可选 nezha → 可选 erlang（RCG/TDR 可快速通过） |
 | standard | 常规功能开发（默认推荐） | tangseng(+RCG 需求澄清) → wukong(+TDR 方案选择) → bajie → PLG → CTG → nezha(增量重做) → erlang(增量重做) |
 | strict | 生产级、安全敏感、多人协作 | standard + 强制 lijing + RCG/TDR 必须存档 + 更严格人工门控 + 发布检查 |
 
@@ -85,13 +90,35 @@ export AI_WORKFLOW_TEMPLATE_REF=main
 |----------------|---------|------|
 | native + Claude Code | `.ai-workflow/` + `.claude/agents/` + `workflows/` + `commands/` + `.claude/hooks/` | 原生轻量适配，含本项目自带 Agent 和 TDR Hook |
 | native + Codex CLI | `.ai-workflow/` + `AGENTS.md`（仅脚本创建时） | 零侵入：已有 AGENTS.md 不修改 |
-| native + OpenCode | `.ai-workflow/` + `.opencode/agents/` + `opencode.json` | 原生 OpenCode agent 适配 |
+| native + OpenCode | `.ai-workflow/` + `.opencode/agents/` + `opencode.json` | 原生 OpenCode agent 适配，含 `rulai` primary 编排 Agent |
 | oh-my-claudecode | `.ai-workflow/` + `.ai-workflow/runtimes/oh-my-claudecode/` | 不生成重复 Claude Agent，由 oh-my-claudecode 接管编排 |
 | oh-my-opencode | `.ai-workflow/` + `.ai-workflow/runtimes/oh-my-opencode/` | 不生成重复 OpenCode Agent，由 oh-my-opencode 接管编排 |
 
-本项目核心只定义 SDLC 协议、门禁和产物契约。native runtime 会生成本项目自带 Agent；oh-my-claudecode / oh-my-opencode runtime 则只生成适配说明，由外部 runtime 的 Team / Autopilot / Ultrawork / Ralph / Sisyphus 等能力负责执行。
+本项目核心只定义 SDLC 协议、门禁和产物契约。native runtime 会生成本项目自带 Agent；其中 OpenCode native 额外生成 `rulai` primary Agent 承担流程路由、阶段推进、产物传递、CTG 交付预检和返工循环。OpenCode native 支持轻量并行：当 ARCH 明确拆出多个独立 M-xxx 模块，且文件范围、接口契约和测试命令互不冲突时，`rulai` 可并行分派多个 bajie 子任务，并在进入 PLG 前执行合并门禁。oh-my-claudecode / oh-my-opencode runtime 只生成适配说明，由外部 runtime 的 Team / Autopilot / Ultrawork / Ralph / Sisyphus 等能力负责执行。
+
+OpenCode native 适合个人本地、最少依赖、可审计的轻量编排。复杂多 worker、自动续跑、强并行实现或长任务恢复场景，优先选择 oh-my-opencode。
 
 权限控制采用”工具层限制 + 提示词约束”双层设计。RCG（需求澄清）在所有工具中通过 tangseng/需求角色强制输出 RCU 实现；TDR（技术决策评审）在 native Claude Code 中通过 PreToolUse Hook 实现硬约束。所有工具通用协议统一安装在 `.ai-workflow/` 目录，产出物存档到 `.ai-workflow/artifacts/`。
+
+## 自动化与自我进化
+
+本项目的自动化是**协议级自动化**，不是后台 daemon，也不是替代 oh-my-* 的强 runtime。每次流水线运行会在 `.ai-workflow/runs/RUN-{timestamp}-{flow}/` 下维护运行态账本：
+
+- `state.json`：当前 flow、mode、runtime、phase、gate、status、next_action
+- `events.jsonl`：路由、Agent 完成、用户确认、门禁阻断、返工、恢复等不可变事件
+- `metrics.json`：阶段耗时、调度次数、返工轮次、阻断项和验证次数
+- `summary.md`：本次任务最终交付摘要
+- `evolution.md`：流程改进建议
+
+主会话、OpenCode native 的 `rulai` 或外部 runtime 编排者在调度 Agent 前必须读取 `state.json`，阶段完成后必须追加 `events.jsonl` 并更新状态。这样即使上下文中断、换工具或隔天继续，也可以按运行账本恢复，而不是依赖 AI 的上下文记忆。
+
+自我进化只输出建议，不自动修改模板、项目代码、权限或门禁。`evolution.md` 中的建议分为：
+
+- `local-tweak`：仅适合当前项目本地个性化调整
+- `template-candidate`：可能适合沉淀回通用模板
+- `runtime-adapter`：应交给 oh-my-* 或 native runtime 执行层优化
+
+只有用户明确确认后，才把 `template-candidate` 作为新的模板改进任务执行。
 
 ## Superpowers 插件集成（可选增强）
 
@@ -101,8 +128,8 @@ export AI_WORKFLOW_TEMPLATE_REF=main
 
 | Agent | 融入的技能 | 增强效果 |
 |-------|-----------|---------|
-| bajie（开发） | TDD + writing-plans + subagent-driven + verification | 实现有 RED→GREEN→REFACTOR 纪律 |
-| nezha（测试） | systematic-debugging + verification | 测试失败有系统化根因追踪 |
+| bajie（开发） | TDD + writing-plans + subagent-driven + verification | 实现与单元测试有 RED→GREEN→REFACTOR 纪律 |
+| nezha（测试） | systematic-debugging + verification | 单测执行验证、测试失败归因和补盲区更系统 |
 | erlang（评审） | requesting/receiving-code-review | 评审有标准化流程 |
 | wukong（架构） | brainstorming | TDR 方案探索更深入 |
 
@@ -112,7 +139,7 @@ export AI_WORKFLOW_TEMPLATE_REF=main
 
 ### TDD 角色分工
 
-bajie 使用 TDD 编写单元测试（覆盖契约签名、边界条件），nezha 独立负责集成测试和覆盖率分析。两者互补不冲突。
+wukong 在 ARCH 中定义测试契约；bajie 使用 TDD 编写实现和单元测试；nezha 负责执行验证单测质量，并补充测试盲区、集成测试、回归测试和覆盖率分析。
 
 ## 角色契约
 
@@ -120,11 +147,13 @@ bajie 使用 TDD 编写单元测试（覆盖契约签名、边界条件），nez
 |------|------|------|
 | tangseng | 需求分析，输出 REQ 文档 | 只读 |
 | wukong | 技术决策、架构契约、编码合规审查 | 只读 |
-| bajie | 功能实现与 TDD 单元测试 | 读写任务范围内代码 |
-| nezha | 集成测试与回归验证 | 读写测试 |
+| bajie | 功能实现与 TDD 单元测试编写 | 读写任务范围内代码 |
+| nezha | 单测执行验证、集成测试、回归验证、覆盖率分析 | 读写测试 |
 | erlang | 代码评审 | 只读 |
 | lijing | 安全审计 | 只读 |
 | bailongma | CI/CD 和部署 | 读写配置 |
+
+OpenCode native 模式会额外生成 `rulai`，它不是第 8 个业务角色，而是流程编排者：只负责路由、门禁、产物传递、轻量并行分派、CTG 和返工判断，不替代上述角色的专业产出。
 
 ## 新功能开发流水线
 
@@ -139,29 +168,32 @@ wukong → TDR 文档（技术决策评审 + 用户选择方案）
   ↓
 wukong → ARCH 文档（架构设计 + DG 自检）
   ↓
-bajie（编码实现 + TDD 单元测试 + CG 预检；可按模块并行调度）
+bajie（编码实现 + TDD 单元测试编写 + CG 预检；满足边界时轻量并行）
   ↓
 wukong → PLG 编码合规审查
   ↓
 交付预检(CTG)
   ↓
-nezha(集成测试+回归) ── 内部重做循环（增量模式）
+nezha(单测验证+集成测试+回归) ── 内部重做循环（增量模式）
   ↓
 erlang(评审) ── 内部重做循环（增量模式）
   ↓          └── 行为变更修复 → 回退 nezha 重测
 合并就绪
 ```
 
+在 OpenCode native 模式下，上述流程由 `rulai` 作为 primary agent 推进；其他角色作为 subagent 执行对应阶段。RCG、TDR、ARCH、CTG 和用户确认门控保持串行；只有 ARCH 明确拆分且互不冲突的 M-xxx 编码任务允许轻量并行，所有并行输出必须先回到 `rulai` 合并后再进入 PLG。
+
 ## 初始化后要做的事
 
 1. 阅读 `.ai-workflow/protocol.md`、`.ai-workflow/roles.md`、`.ai-workflow/gates.md`
-2. 编辑 `.claude/CLAUDE.md`（native Claude Code）或 `AGENTS.md`（Codex/OpenCode），填写项目概述、技术栈、目录结构
-3. 如果选择 oh-my runtime，阅读 `.ai-workflow/runtimes/<runtime>/README.md`
-4. 使用快捷命令（native Claude Code 模式）开始工作：
+2. 编辑 `.claude/CLAUDE.md`（native Claude Code）或 `AGENTS.md`（Codex），填写项目概述、技术栈、目录结构
+3. 如果选择 native OpenCode，优先从 `rulai` 开始任务，由它按 flow 编排其他 Agent
+4. 如果选择 oh-my runtime，阅读 `.ai-workflow/runtimes/<runtime>/README.md`
+5. 使用快捷命令（native Claude Code 模式）开始工作：
    - `/tangseng` — 需求分析，输出 REQ 文档
    - `/wukong` — 架构设计（含 TDR 方案选择），输出 ARCH 文档
    - `/bajie` — 编码实现
-   - `/nezha` — 测试编写与执行
+   - `/nezha` — 单测验证、测试补强与回归
    - `/erlang` — 代码评审
    - `/lijing` — 安全审计
 
@@ -178,6 +210,7 @@ ai-workflow-template/
 │   │       ├── roles.md          # 抽象角色契约
 │   │       ├── gates.md          # 门禁协议
 │   │       ├── runtime-map.md    # runtime 映射
+│   │       ├── runs/             # 流水线运行状态账本协议
 │   │       ├── uninstall.sh      # 卸载脚本
 │   │       └── workflows/        # 3 条工作流
 │   ├── claude-code/              # Claude Code 适配
@@ -190,8 +223,8 @@ ai-workflow-template/
 │   │   └── settings.local.json   # 权限配置 + Hook 注册
 │   ├── codex/                    # Codex CLI 适配
 │   │   └── agents-md-sections/   # 7 个角色段落
-│   └── opencode/                 # OpenCode 适配
-│       └── agents/               # 7 个 Agent 文件
+│   ├── opencode/                 # OpenCode 适配
+│   │   └── agents/               # 7 个业务 Agent + rulai 编排 Agent
 │   └── runtimes/                 # 外部 runtime adapter
 │       ├── oh-my-claudecode/
 │       └── oh-my-opencode/
@@ -210,8 +243,8 @@ ai-workflow-template/
 - `.claude/hooks/` — TDR 门禁 Hook
 - `.claude/CLAUDE.md` — 协作协议（仅 AI Workflow 添加的内容）
 - `.claude/settings.local.json` — 权限配置
-- `.opencode/agents/` — OpenCode Agent 定义
-- `.opencode.json` — OpenCode 配置
+- `.opencode/agents/` — OpenCode Agent 定义（native 模式包含 `rulai` 编排入口）
+- `opencode.json` — OpenCode 配置
 - `.ai-workflow/artifacts/` — 产出物存档（**重要数据，建议备份**）
 
 ### 备份产出物
